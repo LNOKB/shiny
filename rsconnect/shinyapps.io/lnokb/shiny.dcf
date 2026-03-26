@@ -1,0 +1,10 @@
+name: shiny
+title:
+username: lnokb
+account: lnokb
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 16977508
+bundleId: 11756893
+url: https://lnokb.shinyapps.io/shiny/
+version: 1
