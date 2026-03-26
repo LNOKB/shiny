@@ -16,8 +16,8 @@ ui <- fluidPage(
       sliderInput("n_trials",
                   label = "Number of trials",
                   min = 50, max = 500, value = 100, step = 50),
-      sliderInput("sigma_g_low",  "Gain variability (low)",  0.01, 0.3, 0.05, 0.01),  # ← 変更
-      sliderInput("sigma_g_high", "Gain variability (high)", 0.1,  0.5, 0.2,  0.01),  # ← 追加
+      sliderInput("sigma_g_low",  "Gain variability (low)",  0.01, 0.3, 0.05, 0.01),
+      sliderInput("sigma_g_high", "Gain variability (high)", 0.1,  0.5, 0.2,  0.01),
       actionButton("run", "Run simulation", class = "btn-primary")
     ),
     mainPanel(
@@ -47,16 +47,13 @@ ui <- fluidPage(
 # ============================================================
 server <- function(input, output) {
   
-  # ボタンを押した時だけ実行
   sim_result <- eventReactive(input$run, {
     withProgress(message = "Simulating...", value = 0, {
       
-      # Naka-Rushton
       Rmax <- 115; C50 <- 19.3; n_nr <- 2.9
       contrast <- input$contrast
       max_fr <- Rmax * contrast^n_nr / (contrast^n_nr + C50^n_nr)
       
-      # チューニングカーブ
       n_neurons <- 180
       orientations <- seq(1, 180)
       preferred_orientations <- seq(1, 180, length.out = n_neurons)
@@ -90,14 +87,14 @@ server <- function(input, output) {
       
       incProgress(0.3, message = "High GV...")
       df_high <- rbind(
-        simulate(90, input$sigma_g_high, n_trials),  # ← 変更
-        simulate(91, input$sigma_g_high, n_trials)   # ← 変更
+        simulate(90, input$sigma_g_high, n_trials),
+        simulate(91, input$sigma_g_high, n_trials)
       ) %>% mutate(GV = "high")
       
       incProgress(0.3, message = "Low GV...")
       df_low <- rbind(
-        simulate(90, input$sigma_g_low, n_trials),   # ← 変更
-        simulate(91, input$sigma_g_low, n_trials)    # ← 変更
+        simulate(90, input$sigma_g_low, n_trials),
+        simulate(91, input$sigma_g_low, n_trials)
       ) %>% mutate(GV = "low")
       
       incProgress(0.2, message = "Done!")
@@ -105,14 +102,12 @@ server <- function(input, output) {
     })
   })
   
-  # LDA用データ（sigma_g_lowスライダーに連動）
   lda_result <- eventReactive(input$run, {
     withProgress(message = "Computing LDA...", {
       
-      sigma_g <- input$sigma_g_low  # ← 変更
+      sigma_g <- input$sigma_g_low
       n       <- input$n_trials
       
-      # lda_projection.R と同じパラメータ
       mu_0 <- c(30, 29)
       mu_1 <- c(29, 30)
       Sigma_0 <- matrix(c(1.0, 0, 0, 1.0), nrow = 2)
@@ -121,7 +116,6 @@ server <- function(input, output) {
       data0 <- mvrnorm(n, mu = mu_0, Sigma = Sigma_0)
       data1 <- mvrnorm(n, mu = mu_1, Sigma = Sigma_1)
       
-      # gain variability 適用
       gain0 <- rgamma(n, shape = 1/sigma_g^2, scale = sigma_g^2)
       gain1 <- rgamma(n, shape = 1/sigma_g^2, scale = sigma_g^2)
       data0[, 1] <- data0[, 1] * gain0
@@ -152,7 +146,6 @@ server <- function(input, output) {
       lfi <- t(df_vec) %*% solve(Sigma_w) %*% df_vec
       dp  <- sqrt(lfi)
       
-      # 射影
       proj0 <- as.numeric(data0 %*% w)
       proj1 <- as.numeric(data1 %*% w)
       mu_proj0 <- mean(proj0)
@@ -196,16 +189,28 @@ server <- function(input, output) {
   # --- 3D scatter ---
   output$p_3d <- renderPlotly({
     req(sim_result())
-    sim_result() %>%
+    df_3d <- sim_result() %>%
       filter(Neuron %in% c(60, 90, 120)) %>%
       pivot_wider(id_cols = c(GV, Stimulus, Trial),
-                  names_from = Neuron, values_from = Spikes) %>%
-      plot_ly(x = ~`60`, y = ~`90`, z = ~`120`,
-              color = ~factor(GV),
-              symbol = ~factor(Stimulus),
-              colors = c("#E41A1C", "#377EB8"),
-              type = "scatter3d", mode = "markers",
-              marker = list(size = 3)) %>%
+                  names_from = Neuron, values_from = Spikes)
+    
+    plot_ly() %>%
+      # 90 = + (size 3)
+      add_trace(data = df_3d %>% filter(Stimulus == 90),
+                x = ~`60`, y = ~`90`, z = ~`120`,
+                color = ~factor(GV),
+                colors = c("#E41A1C", "#377EB8"),
+                type = "scatter3d", mode = "markers",
+                marker = list(size = 3, symbol = "cross"),
+                name = ~paste0(GV, " stim90")) %>%
+      # 91 = ● (size 2)
+      add_trace(data = df_3d %>% filter(Stimulus == 91),
+                x = ~`60`, y = ~`90`, z = ~`120`,
+                color = ~factor(GV),
+                colors = c("#E41A1C", "#377EB8"),
+                type = "scatter3d", mode = "markers",
+                marker = list(size = 2, symbol = "circle"),
+                name = ~paste0(GV, " stim91")) %>%
       layout(scene = list(
         xaxis = list(title = "Neuron 60",  range = c(0, 200)),
         yaxis = list(title = "Neuron 90",  range = c(0, 200)),
@@ -234,13 +239,23 @@ server <- function(input, output) {
       grid3d$prob <- predict(fit, newdata = grid3d, type = "response")
       decision_points <- grid3d %>% filter(abs(prob - 0.5) < 0.03)
       
-      p <- df_scatter %>%
-        plot_ly(x = ~`60`, y = ~`90`, z = ~`120`,
-                color = ~factor(GV),
-                symbol = ~factor(Stimulus),
-                colors = c("#E41A1C", "#377EB8"),
-                type = "scatter3d", mode = "markers",
-                marker = list(size = 3))
+      p <- plot_ly() %>%
+        # 90 = + (size 3)
+        add_trace(data = df_scatter %>% filter(Stimulus == 90),
+                  x = ~`60`, y = ~`90`, z = ~`120`,
+                  color = ~factor(GV),
+                  colors = c("#E41A1C", "#377EB8"),
+                  type = "scatter3d", mode = "markers",
+                  marker = list(size = 3, symbol = "cross"),
+                  name = ~paste0(GV, " stim90")) %>%
+        # 91 = ● (size 2)
+        add_trace(data = df_scatter %>% filter(Stimulus == 91),
+                  x = ~`60`, y = ~`90`, z = ~`120`,
+                  color = ~factor(GV),
+                  colors = c("#E41A1C", "#377EB8"),
+                  type = "scatter3d", mode = "markers",
+                  marker = list(size = 2, symbol = "circle"),
+                  name = ~paste0(GV, " stim91"))
       
       if (nrow(decision_points) > 0) {
         p <- p %>%
