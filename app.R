@@ -60,7 +60,7 @@ ui <- fluidPage(
       sliderInput("contrast_A", "Contrast A (%)",        min = 1,    max = 100,  value = 40,   step = 1),
       sliderInput("sigma_g_A",  "Gain variability A",    min = 0.01, max = 0.5,  value = 0.05, step = 0.01),
       sliderInput("spont_A",    "Spontaneous activity A",min = 0,    max = 25,   value = 2,    step = 0.5),
-      sliderInput("fano_A",     "Fano Factor A",         min = 1,    max = 10,   value = 1,    step = 0.5),
+      sliderInput("fano_A",     "Fano Factor A",         min = 1,    max = 5,   value = 1,    step = 0.5),
       hr(),
       # Condition B
       h5("Condition B", style = "color:#377EB8; font-weight:bold;"),
@@ -88,13 +88,13 @@ ui <- fluidPage(
       plotOutput("g_density"),
       hr(),
       h4("Decision boundary"),
-      plotlyOutput("p_boundary"),
-      hr(),
-      h4("LDA projection (2D)"),
-      plotOutput("g_lda_2d"),
-      hr(),
-      h4("LDA projection (1D)"),
-      plotOutput("g_lda_1d")
+      plotlyOutput("p_boundary")#,
+      # hr(),
+      # h4("LDA projection (2D)"),
+      # plotOutput("g_lda_2d"),
+      # hr(),
+      # h4("LDA projection (1D)"),
+      # plotOutput("g_lda_1d")
     )
   )
 )
@@ -427,14 +427,14 @@ server <- function(input, output, session) {
                 x = ~`95`, y = ~`90`, z = ~`100`,
                 color = ~factor(Condition), colors = c("#E41A1C", "#377EB8"),
                 type = "scatter3d", mode = "markers",
-                marker = list(size = 3, symbol = "cross"),
-                name = ~paste0("Cond", Condition, " stim", s1)) %>%
+                marker = list(size = 3.5, symbol = "cross"),
+                name = ~paste0("Cond ", Condition, "; S1 (", s1, " deg)")) %>%
       add_trace(data = df_3d %>% filter(Stimulus == s2),
                 x = ~`95`, y = ~`90`, z = ~`100`,
                 color = ~factor(Condition), colors = c("#E41A1C", "#377EB8"),
                 type = "scatter3d", mode = "markers",
-                marker = list(size = 1, symbol = "circle"),
-                name = ~paste0("Cond", Condition, " stim", s2)) %>%
+                marker = list(size = 1.7, symbol = "circle"),
+                name = ~paste0("Cond ", Condition, "; S2 (", s2, " deg)")) %>%
       layout(scene = list(
         xaxis = list(title = "Neuron 95",  range = c(0, 180)),
         yaxis = list(title = "Neuron 90",  range = c(0, 180)),
@@ -459,7 +459,7 @@ server <- function(input, output, session) {
         x_seq <- seq(0, 180, length.out = 20)
         grid3d <- expand.grid(`95` = x_seq, `90` = x_seq, `100` = x_seq)
         grid3d$prob <- predict(fit, newdata = grid3d, type = "response")
-        dp <- grid3d %>% filter(abs(prob - 0.5) < 0.1) #ここをどのくらい厳しくする？
+        dp <- grid3d %>% filter(abs(prob - 0.5) < 0.07) #ここをどのくらい厳しくする？
         list(df = df_s, dp = dp, col = col, label = cond_label)
       }
       
@@ -500,84 +500,84 @@ server <- function(input, output, session) {
     })
   })
   
-  # ---- LDA 2D ----
-  output$g_lda_2d <- renderPlot({
-    req(lda_result())
-    
-    make_panel <- function(r, ix, iy, xlab, ylab, cond_col) {
-      df_plot <- data.frame(
-        x     = c(r$data0[, ix], r$data1[, ix]),
-        y     = c(r$data0[, iy], r$data1[, iy]),
-        class = factor(c(rep(0, r$n), rep(1, r$n)))
-      )
-      arrows_df <- data.frame(
-        x    = c(r$mean0[ix], r$mean0[ix]),
-        y    = c(r$mean0[iy], r$mean0[iy]),
-        xend = c(r$mean0[ix] + r$df_vec[ix], r$mean0[ix] + r$w_scaled[ix]),
-        yend = c(r$mean0[iy] + r$df_vec[iy], r$mean0[iy] + r$w_scaled[iy]),
-        type = c("df", "w")
-      )
-      ggplot(df_plot, aes(x = x, y = y, color = class)) +
-        geom_point(size = 1.5, alpha = 0.3) +
-        annotate("point", x = r$mean0[ix], y = r$mean0[iy], color = "blue", size = 3) +
-        annotate("point", x = r$mean1[ix], y = r$mean1[iy], color = "red",  size = 3) +
-        geom_segment(data = arrows_df,
-                     aes(x = x, y = y, xend = xend, yend = yend, color = type),
-                     arrow = arrow(length = unit(0.15, "cm")), lwd = 1.2,
-                     inherit.aes = FALSE) +
-        coord_fixed() +
-        scale_color_manual(values = c("0"="blue","1"="red","df"="green","w"="purple")) +
-        labs(x = xlab, y = ylab) +
-        theme_minimal(base_size = 11) +
-        theme(legend.position = "none")
-    }
-    
-    rA <- lda_result()$A; rB <- lda_result()$B
-    pA1 <- make_panel(rA, 1, 2, "N95", "N90",  "#E41A1C")
-    pA2 <- make_panel(rA, 2, 3, "N90", "N100", "#E41A1C")
-    pB1 <- make_panel(rB, 1, 2, "N95", "N90",  "#377EB8")
-    pB2 <- make_panel(rB, 2, 3, "N90", "N100", "#377EB8")
-    
-    (pA1 + pA2) / (pB1 + pB2) +
-      plot_annotation(
-        title = "LDA: df (green) & w (purple)",
-        subtitle = paste0("Cond A d'=", round(rA$dp, 2),
-                          "  |  Cond B d'=", round(rB$dp, 2))
-      )
-  })
-  
-  # ---- LDA 1D ----
-  output$g_lda_1d <- renderPlot({
-    req(lda_result())
-    rA <- lda_result()$A; rB <- lda_result()$B
-    
-    proj_df <- rbind(
-      data.frame(projection = c(rA$proj0, rA$proj1),
-                 class = factor(c(rep(0, rA$n), rep(1, rA$n))),
-                 Condition = "A"),
-      data.frame(projection = c(rB$proj0, rB$proj1),
-                 class = factor(c(rep(0, rB$n), rep(1, rB$n))),
-                 Condition = "B")
-    )
-    
-    ggplot(proj_df, aes(x = projection, fill = class)) +
-      geom_density(alpha = 0.5) +
-      geom_vline(data = data.frame(
-        xint = c(rA$mu_proj0, rA$mu_proj1, rB$mu_proj0, rB$mu_proj1),
-        Condition = c("A","A","B","B"),
-        class = factor(c(0,1,0,1))
-      ), aes(xintercept = xint, color = class), linetype = "dashed") +
-      scale_fill_manual(values  = c("0" = "blue", "1" = "red")) +
-      scale_color_manual(values = c("0" = "blue", "1" = "red")) +
-      facet_wrap(~ Condition, nrow = 2,
-                 labeller = labeller(Condition = c(
-                   A = paste0("Condition A  d'=", round(rA$dp_1d, 2)),
-                   B = paste0("Condition B  d'=", round(rB$dp_1d, 2))
-                 ))) +
-      labs(title = "1D projection onto w", x = "Projection onto w", y = "Density") +
-      theme_minimal(base_size = 13) +
-      theme(legend.position = "bottom")
-  })
+  # # ---- LDA 2D ----
+  # output$g_lda_2d <- renderPlot({
+  #   req(lda_result())
+  #   
+  #   make_panel <- function(r, ix, iy, xlab, ylab, cond_col) {
+  #     df_plot <- data.frame(
+  #       x     = c(r$data0[, ix], r$data1[, ix]),
+  #       y     = c(r$data0[, iy], r$data1[, iy]),
+  #       class = factor(c(rep(0, r$n), rep(1, r$n)))
+  #     )
+  #     arrows_df <- data.frame(
+  #       x    = c(r$mean0[ix], r$mean0[ix]),
+  #       y    = c(r$mean0[iy], r$mean0[iy]),
+  #       xend = c(r$mean0[ix] + r$df_vec[ix], r$mean0[ix] + r$w_scaled[ix]),
+  #       yend = c(r$mean0[iy] + r$df_vec[iy], r$mean0[iy] + r$w_scaled[iy]),
+  #       type = c("df", "w")
+  #     )
+  #     ggplot(df_plot, aes(x = x, y = y, color = class)) +
+  #       geom_point(size = 1.5, alpha = 0.3) +
+  #       annotate("point", x = r$mean0[ix], y = r$mean0[iy], color = "blue", size = 3) +
+  #       annotate("point", x = r$mean1[ix], y = r$mean1[iy], color = "red",  size = 3) +
+  #       geom_segment(data = arrows_df,
+  #                    aes(x = x, y = y, xend = xend, yend = yend, color = type),
+  #                    arrow = arrow(length = unit(0.15, "cm")), lwd = 1.2,
+  #                    inherit.aes = FALSE) +
+  #       coord_fixed() +
+  #       scale_color_manual(values = c("0"="blue","1"="red","df"="green","w"="purple")) +
+  #       labs(x = xlab, y = ylab) +
+  #       theme_minimal(base_size = 11) +
+  #       theme(legend.position = "none")
+  #   }
+  #   
+  #   rA <- lda_result()$A; rB <- lda_result()$B
+  #   pA1 <- make_panel(rA, 1, 2, "N95", "N90",  "#E41A1C")
+  #   pA2 <- make_panel(rA, 2, 3, "N90", "N100", "#E41A1C")
+  #   pB1 <- make_panel(rB, 1, 2, "N95", "N90",  "#377EB8")
+  #   pB2 <- make_panel(rB, 2, 3, "N90", "N100", "#377EB8")
+  #   
+  #   (pA1 + pA2) / (pB1 + pB2) +
+  #     plot_annotation(
+  #       title = "LDA: df (green) & w (purple)",
+  #       subtitle = paste0("Cond A d'=", round(rA$dp, 2),
+  #                         "  |  Cond B d'=", round(rB$dp, 2))
+  #     )
+  # })
+  # 
+  # # ---- LDA 1D ----
+  # output$g_lda_1d <- renderPlot({
+  #   req(lda_result())
+  #   rA <- lda_result()$A; rB <- lda_result()$B
+  #   
+  #   proj_df <- rbind(
+  #     data.frame(projection = c(rA$proj0, rA$proj1),
+  #                class = factor(c(rep(0, rA$n), rep(1, rA$n))),
+  #                Condition = "A"),
+  #     data.frame(projection = c(rB$proj0, rB$proj1),
+  #                class = factor(c(rep(0, rB$n), rep(1, rB$n))),
+  #                Condition = "B")
+  #   )
+  #   
+  #   ggplot(proj_df, aes(x = projection, fill = class)) +
+  #     geom_density(alpha = 0.5) +
+  #     geom_vline(data = data.frame(
+  #       xint = c(rA$mu_proj0, rA$mu_proj1, rB$mu_proj0, rB$mu_proj1),
+  #       Condition = c("A","A","B","B"),
+  #       class = factor(c(0,1,0,1))
+  #     ), aes(xintercept = xint, color = class), linetype = "dashed") +
+  #     scale_fill_manual(values  = c("0" = "blue", "1" = "red")) +
+  #     scale_color_manual(values = c("0" = "blue", "1" = "red")) +
+  #     facet_wrap(~ Condition, nrow = 2,
+  #                labeller = labeller(Condition = c(
+  #                  A = paste0("Condition A  d'=", round(rA$dp_1d, 2)),
+  #                  B = paste0("Condition B  d'=", round(rB$dp_1d, 2))
+  #                ))) +
+  #     labs(title = "1D projection onto w", x = "Projection onto w", y = "Density") +
+  #     theme_minimal(base_size = 13) +
+  #     theme(legend.position = "bottom")
+  # })
 }
 
 # ============================================================
