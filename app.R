@@ -84,6 +84,9 @@ ui <- fluidPage(
       h4("3D scatter"),
       plotlyOutput("p_3d"),
       hr(),
+      h4("Fano Factor (empirical vs setting)"),
+      verbatimTextOutput("g_fano"),
+      hr(),
       h4("Total spike count"),
       plotOutput("g_density"),
       hr(),
@@ -411,6 +414,46 @@ server <- function(input, output, session) {
       scale_fill_manual( values = c("A" = "#E41A1C", "B" = "#377EB8")) +
       labs(x = "Total spikes", y = "Density") +
       theme_classic(base_size = 13)
+  })
+  # ---- Fano Factor (empirical) ----
+  # Fano Factor = Var / Mean, averaged across trials for representative neurons.
+  # Compared against the slider setting value as a sanity check.
+  output$g_fano <- renderText({
+    req(sim_result())
+    
+    rep_neurons <- c(90, 95, 100)
+    
+    fano_df <- sim_result() %>%
+      filter(Neuron %in% rep_neurons) %>%
+      group_by(Condition, Neuron) %>%
+      summarise(
+        mean_sp = mean(Spikes),
+        var_sp  = var(Spikes),
+        fano    = var_sp / mean_sp,
+        .groups = "drop"
+      ) %>%
+      filter(mean_sp > 0)
+    
+    lines <- c(
+      sprintf("%-12s  %s  %s  %s  %s",
+              "", "Neuron 90", "Neuron 95", "Neuron 100", "Setting"),
+      "─────────────────────────────────────────────"
+    )
+    
+    for (cond in c("A", "B")) {
+      setting <- if (cond == "A") input$fano_A else input$fano_B
+      vals <- fano_df %>% filter(Condition == cond)
+      get_f <- function(n) {
+        v <- vals$fano[vals$Neuron == n]
+        if (length(v) == 0) "  NA  " else sprintf("%.2f", v)
+      }
+      lines <- c(lines,
+                 sprintf("Condition %s:  %s        %s        %s        %.1f",
+                         cond, get_f(90), get_f(95), get_f(100), setting)
+      )
+    }
+    
+    paste(lines, collapse = "\n")
   })
   
   # ---- 3D scatter ----
