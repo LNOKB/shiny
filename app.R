@@ -72,17 +72,20 @@ ui <- fluidPage(
       actionButton("run", "Run simulation", class = "btn-primary")
     ),
     mainPanel(
+      h4("Stimuli"),
+      plotOutput("g_stimuli", height = "180px"),
+      hr(),
       h4("Naka-Rushton & Tuning curves"),
       fluidRow(
         column(6, plotOutput("g_nr")),
         column(6, plotOutput("g_tuning"))
       ),
       hr(),
-      h4("Total spike count"),
-      plotOutput("g_density"),
-      hr(),
       h4("3D scatter"),
       plotlyOutput("p_3d"),
+      hr(),
+      h4("Total spike count"),
+      plotOutput("g_density"),
       hr(),
       h4("Decision boundary"),
       plotlyOutput("p_boundary"),
@@ -235,6 +238,83 @@ server <- function(input, output, session) {
     })
   })
   
+  # ---- Stimuli: Gabor patches ----
+  # Schematic illustration of 4 conditions: Condition A/B x Stimulus 1/2
+  # Gabor orientation reflects stim1/stim2 angle; contrast is approximate/visual only.
+  output$g_stimuli <- renderPlot({
+    req(input$stim1, input$stim2, input$contrast_A, input$contrast_B)
+    
+    make_gabor <- function(theta_deg, contrast_scale, nx = 60) {
+      theta <- theta_deg * pi / 180
+      x <- seq(-1, 1, length.out = nx)
+      grid <- expand.grid(x = x, y = x)
+      # Rotate coordinates
+      xr <-  grid$x * cos(theta) + grid$y * sin(theta)
+      yr <- -grid$x * sin(theta) + grid$y * cos(theta)
+      # Gabor = Gaussian envelope * sinusoidal grating
+      sigma <- 0.35
+      freq  <- 3.5
+      val <- exp(-(xr^2 + yr^2) / (2 * sigma^2)) * cos(2 * pi * freq * xr)
+      # Scale by contrast (0~1)
+      val <- val * contrast_scale
+      data.frame(x = grid$x, y = grid$y, val = val)
+    }
+    
+    cA_scale <- input$contrast_A / 100
+    cB_scale <- input$contrast_B / 100
+    
+    panels <- list(
+      list(cond = "Condition A", stim_label = paste0("S1 (", input$stim1, "°)"),
+           theta = input$stim1, cs = cA_scale, px = 1, py = 2),
+      list(cond = "Condition A", stim_label = paste0("S2 (", input$stim2, "°)"),
+           theta = input$stim2, cs = cA_scale, px = 2, py = 2),
+      list(cond = "Condition B", stim_label = paste0("S1 (", input$stim1, "°)"),
+           theta = input$stim1, cs = cB_scale, px = 1, py = 1),
+      list(cond = "Condition B", stim_label = paste0("S2 (", input$stim2, "°)"),
+           theta = input$stim2, cs = cB_scale, px = 2, py = 1)
+    )
+    
+    # Build combined data frame with panel offsets
+    df_all <- do.call(rbind, lapply(panels, function(p) {
+      g <- make_gabor(p$theta, p$cs)
+      g$x_off <- g$x + (p$px - 1) * 2.5
+      g$y_off <- g$y + (p$py - 1) * 2.5
+      g$cond  <- p$cond
+      g$stim_label <- p$stim_label
+      g$px <- p$px; g$py <- p$py
+      g
+    }))
+    
+    # Label positions
+    labels_df <- data.frame(
+      x_off = c(0, 2.5, 0, 2.5),
+      y_off = c(3.3, 3.3, 0.8, 0.8),
+      label = c(paste0("S1 (", input$stim1, "°)"),
+                paste0("S2 (", input$stim2, "°)"),
+                paste0("S1 (", input$stim1, "°)"),
+                paste0("S2 (", input$stim2, "°)"))
+    )
+    cond_labels_df <- data.frame(
+      x_off = c(-1.6, -1.6),
+      y_off = c(2.5, 0),
+      label = c("Cond A", "Cond B"),
+      col   = c("#E41A1C", "#377EB8")
+    )
+    
+    ggplot(df_all, aes(x = x_off, y = y_off, fill = val)) +
+      geom_raster(interpolate = TRUE) +
+      scale_fill_gradient2(low = "black", mid = "gray50", high = "white",
+                           midpoint = 0, limits = c(-1, 1), guide = "none") +
+      geom_text(data = labels_df, aes(x = x_off, y = y_off, label = label),
+                inherit.aes = FALSE, size = 3.2, vjust = 0, color = "white") +
+      geom_text(data = cond_labels_df,
+                aes(x = x_off, y = y_off, label = label, color = col),
+                inherit.aes = FALSE, size = 3.3, fontface = "bold") +
+      scale_color_identity() +
+      coord_fixed(xlim = c(-1.8, 3.6), ylim = c(-1.2, 3.6)) +
+      theme_void()
+  })
+  
   # ---- Naka-Rushton plot ----
   output$g_nr <- renderPlot({
     req(input$contrast_A, input$contrast_B)
@@ -299,11 +379,11 @@ server <- function(input, output, session) {
     max_fr_B <- Rmax * input$contrast_B^n_nr / (input$contrast_B^n_nr + C50^n_nr)
     
     df_all <- rbind(
-      make_tc_df(max_fr_A, input$spont_A, paste0("Condition A")),
-      make_tc_df(max_fr_B, input$spont_B, paste0("Condition B"))
+      make_tc_df(max_fr_A, input$spont_A, paste0("Condition A  (spont=", input$spont_A, ")")),
+      make_tc_df(max_fr_B, input$spont_B, paste0("Condition B  (spont=", input$spont_B, ")"))
     ) %>% mutate(Condition = factor(Condition,
-                                    levels = c(paste0("Condition A"),
-                                               paste0("Condition B"))))
+                                    levels = c(paste0("Condition A  (spont=", input$spont_A, ")"),
+                                               paste0("Condition B  (spont=", input$spont_B, ")"))))
     
     y_max <- max(df_all$FiringRate) * 1.05
     
