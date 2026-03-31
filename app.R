@@ -17,7 +17,7 @@ presets <- list(
     # High vs Low spontaneous activity
     contrast_A = 40, contrast_B = 40,
     sigma_g_A  = 0.05, sigma_g_B  = 0.05,
-    spont_A    = 5,  spont_B    = 2,
+    spont_A    = 25,  spont_B    = 0,
     fano_A     = 1,  fano_B     = 1
   ),
   blindsight = list(
@@ -51,22 +51,22 @@ ui <- fluidPage(
                               "Subjective inflation" = "subjective")),
       hr(),
       # Stimuli and trials (shared across conditions)
-      sliderInput("stim1",    "Stimulus 1 (°)", min = 1, max = 180, value = 90,  step = 1),
-      sliderInput("stim2",    "Stimulus 2 (°)", min = 1, max = 180, value = 100, step = 1),
+      sliderInput("stim1",    "Stimulus 1 orientation (°)", min = 1, max = 180, value = 90,  step = 1),
+      sliderInput("stim2",    "Stimulus 2 orientation (°)", min = 1, max = 180, value = 100, step = 1),
       sliderInput("n_trials", "Number of trials", min = 50, max = 500, value = 100, step = 50),
       hr(),
       # Condition A
       h5("Condition A", style = "color:#E41A1C; font-weight:bold;"),
       sliderInput("contrast_A", "Contrast A (%)",        min = 1,    max = 100,  value = 40,   step = 1),
       sliderInput("sigma_g_A",  "Gain variability A",    min = 0.01, max = 0.5,  value = 0.05, step = 0.01),
-      sliderInput("spont_A",    "Spontaneous activity A",min = 0,    max = 20,   value = 2,    step = 0.5),
+      sliderInput("spont_A",    "Spontaneous activity A",min = 0,    max = 25,   value = 2,    step = 0.5),
       sliderInput("fano_A",     "Fano Factor A",         min = 1,    max = 10,   value = 1,    step = 0.5),
       hr(),
       # Condition B
       h5("Condition B", style = "color:#377EB8; font-weight:bold;"),
       sliderInput("contrast_B", "Contrast B (%)",        min = 1,    max = 100,  value = 40,   step = 1),
       sliderInput("sigma_g_B",  "Gain variability B",    min = 0.01, max = 0.5,  value = 0.05, step = 0.01),
-      sliderInput("spont_B",    "Spontaneous activity B",min = 0,    max = 20,   value = 2,    step = 0.5),
+      sliderInput("spont_B",    "Spontaneous activity B",min = 0,    max = 25,   value = 2,    step = 0.5),
       sliderInput("fano_B",     "Fano Factor B",         min = 1,    max = 10,   value = 1,    step = 0.5),
       hr(),
       actionButton("run", "Run simulation", class = "btn-primary")
@@ -264,13 +264,13 @@ server <- function(input, output, session) {
     cB_scale <- input$contrast_B / 100
     
     panels <- list(
-      list(cond = "Condition A", stim_label = paste0("S1 (", input$stim1, "°)"),
+      list(cond = "Condition A", stim_label = paste0("S1"),
            theta = input$stim1, cs = cA_scale, px = 1, py = 2),
-      list(cond = "Condition A", stim_label = paste0("S2 (", input$stim2, "°)"),
+      list(cond = "Condition A", stim_label = paste0("S2"),
            theta = input$stim2, cs = cA_scale, px = 2, py = 2),
-      list(cond = "Condition B", stim_label = paste0("S1 (", input$stim1, "°)"),
+      list(cond = "Condition B", stim_label = paste0("S1"),
            theta = input$stim1, cs = cB_scale, px = 1, py = 1),
-      list(cond = "Condition B", stim_label = paste0("S2 (", input$stim2, "°)"),
+      list(cond = "Condition B", stim_label = paste0("S2"),
            theta = input$stim2, cs = cB_scale, px = 2, py = 1)
     )
     
@@ -289,10 +289,10 @@ server <- function(input, output, session) {
     labels_df <- data.frame(
       x_off = c(0, 2.5, 0, 2.5),
       y_off = c(3.3, 3.3, 0.8, 0.8),
-      label = c(paste0("S1 (", input$stim1, "°)"),
-                paste0("S2 (", input$stim2, "°)"),
-                paste0("S1 (", input$stim1, "°)"),
-                paste0("S2 (", input$stim2, "°)"))
+      label = c(paste0("S1"),
+                paste0("S2"),
+                paste0("S1"),
+                paste0("S2"))
     )
     cond_labels_df <- data.frame(
       x_off = c(-1.6, -1.6),
@@ -456,10 +456,10 @@ server <- function(input, output, session) {
           mutate(stim_bin = as.numeric(as.factor(Stimulus)) - 1)
         
         fit <- glm(stim_bin ~ `95` + `90` + `100`, data = df_s, family = binomial)
-        x_seq <- seq(0, 300, length.out = 12)
+        x_seq <- seq(0, 300, length.out = 20)
         grid3d <- expand.grid(`95` = x_seq, `90` = x_seq, `100` = x_seq)
         grid3d$prob <- predict(fit, newdata = grid3d, type = "response")
-        dp <- grid3d %>% filter(abs(prob - 0.5) < 0.03)
+        dp <- grid3d %>% filter(abs(prob - 0.5) < 0.05)
         list(df = df_s, dp = dp, col = col, label = cond_label)
       }
       
@@ -484,7 +484,10 @@ server <- function(input, output, session) {
           p <- p %>%
             add_trace(data = r$dp, x = ~`95`, y = ~`90`, z = ~`100`,
                       type = "mesh3d", opacity = 0.3,
-                      color = I(r$col), name = paste0("Boundary Cond", r$label),
+                      colorscale = list(c(0, r$col), c(1, r$col)),
+                      intensity = rep(0.5, nrow(r$dp)),
+                      showscale = FALSE,
+                      name = paste0("Boundary Cond", r$label),
                       inherit = FALSE)
         }
       }
