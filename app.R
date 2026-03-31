@@ -433,12 +433,12 @@ server <- function(input, output, session) {
                 x = ~`95`, y = ~`90`, z = ~`100`,
                 color = ~factor(Condition), colors = c("#E41A1C", "#377EB8"),
                 type = "scatter3d", mode = "markers",
-                marker = list(size = 2, symbol = "circle"),
+                marker = list(size = 1, symbol = "circle"),
                 name = ~paste0("Cond", Condition, " stim", s2)) %>%
       layout(scene = list(
-        xaxis = list(title = "Neuron 95",  range = c(0, 300)),
-        yaxis = list(title = "Neuron 90",  range = c(0, 300)),
-        zaxis = list(title = "Neuron 100", range = c(0, 300)),
+        xaxis = list(title = "Neuron 95",  range = c(0, 180)),
+        yaxis = list(title = "Neuron 90",  range = c(0, 180)),
+        zaxis = list(title = "Neuron 100", range = c(0, 180)),
         aspectmode = "cube"
       ))
   })
@@ -456,10 +456,10 @@ server <- function(input, output, session) {
           mutate(stim_bin = as.numeric(as.factor(Stimulus)) - 1)
         
         fit <- glm(stim_bin ~ `95` + `90` + `100`, data = df_s, family = binomial)
-        x_seq <- seq(0, 300, length.out = 20)
+        x_seq <- seq(0, 180, length.out = 20)
         grid3d <- expand.grid(`95` = x_seq, `90` = x_seq, `100` = x_seq)
         grid3d$prob <- predict(fit, newdata = grid3d, type = "response")
-        dp <- grid3d %>% filter(abs(prob - 0.5) < 0.05)
+        dp <- grid3d %>% filter(abs(prob - 0.5) < 0.1) #ここをどのくらい厳しくする？
         list(df = df_s, dp = dp, col = col, label = cond_label)
       }
       
@@ -478,7 +478,7 @@ server <- function(input, output, session) {
           add_trace(data = r$df %>% filter(Stimulus == s2),
                     x = ~`95`, y = ~`90`, z = ~`100`,
                     type = "scatter3d", mode = "markers",
-                    marker = list(size = 2, symbol = "circle", color = r$col),
+                    marker = list(size = 1, symbol = "circle", color = r$col),
                     name = paste0("Cond", r$label, " S2"))
         if (nrow(r$dp) > 0) {
           p <- p %>%
@@ -492,9 +492,9 @@ server <- function(input, output, session) {
         }
       }
       p %>% layout(scene = list(
-        xaxis = list(title = "Neuron 95",  range = c(0, 300)),
-        yaxis = list(title = "Neuron 90",  range = c(0, 300)),
-        zaxis = list(title = "Neuron 100", range = c(0, 300)),
+        xaxis = list(title = "Neuron 95",  range = c(0, 180)),
+        yaxis = list(title = "Neuron 90",  range = c(0, 180)),
+        zaxis = list(title = "Neuron 100", range = c(0, 180)),
         aspectmode = "cube"
       ))
     })
