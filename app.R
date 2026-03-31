@@ -23,7 +23,7 @@ ui <- fluidPage(
       sliderInput("sigma_g_high", "Gain variability (high)", 0.1,  0.5, 0.2,  0.01),
       # Stimulus orientations to discriminate (degrees)
       sliderInput("stim1", "Stimulus 1 (°)", min = 1, max = 180, value = 90, step = 1),
-      sliderInput("stim2", "Stimulus 2 (°)", min = 1, max = 180, value = 91, step = 1),
+      sliderInput("stim2", "Stimulus 2 (°)", min = 1, max = 180, value = 100, step = 1),
       actionButton("run", "Run simulation", class = "btn-primary")
     ),
     mainPanel(
@@ -66,7 +66,6 @@ server <- function(input, output) {
       
       # Naka-Rushton function: maps contrast -> peak firing rate
       # R(c) = Rmax * c^n / (c^n + C50^n)
-      # add citation
       Rmax <- 115; C50 <- 19.3; n_nr <- 2.9
       
       max_fr1 <- Rmax * input$contrast1^n_nr / (input$contrast1^n_nr + C50^n_nr)
@@ -79,7 +78,6 @@ server <- function(input, output) {
       n_trials <- input$n_trials
       
       # Build Gaussian tuning curves for a given peak firing rate
-      # 高さだけがコントラストに応じて変わる
       make_tuning_curves <- function(max_fr) {
         tc <- matrix(0, nrow = n_neurons, ncol = 180)
         for (i in 1:n_neurons) {
@@ -99,11 +97,9 @@ server <- function(input, output) {
       incProgress(0.2, message = "Running simulation...")
       
       # Simulate one trial:
-      # 1. Sample a global gain g ~ Gamma(1/sigma_g^2, sigma_g^2); Goris et al. (2014) 
+      # 1. Sample a global gain g ~ Gamma(1/sigma_g^2, sigma_g^2)
       #    -> gain variability: all neurons scaled by the same g within a trial
-      #　ガンマ分布を使う以上，gainが1を超えることがありうるけどいいのかな
-      # 2. Draw spikes from negative binomial (approx. Poisson when size is large)　
-      #サイズ大きくして一旦ファノファクターは考えない()
+      # 2. Draw spikes from negative binomial (approx. Poisson when size is large)
       simulate <- function(stim, sigma_g, n_trials, tuning_curves) {
         do.call(rbind, lapply(1:n_trials, function(i) {
           idx <- max(1, min(180, round(stim)))
@@ -136,89 +132,79 @@ server <- function(input, output) {
   })
   
   # ---- lda_result ----
-  # Computes LDA (Fisher's Linear Discriminant) on a simplified 2-neuron model.
-  # Uses sigma_g_low as the gain variability level.
-  # Returns the discriminant axis w, projections, and d'.
+  # Computes LDA (Fisher's Linear Discriminant) using Neuron 95, 90, and 100
+  # from the actual simulation data (sim_result), low GV condition.
+  # For the 2D plot, data is projected onto the first 2 principal components (PCA).
   lda_result <- eventReactive(input$run, {
+    req(sim_result())
     withProgress(message = "Computing LDA...", {
       
-      sigma_g <- input$sigma_g_low
-      n       <- input$n_trials
+      s1 <- input$stim1
+      s2 <- input$stim2
       
-      # Fixed mean spike counts for the two neurons under two stimulus classes.
-      # Must be positive so that gain multiplication does not produce negatives.
-      mu_0 <- c(30, 29)  # class 0: neuron1 more active
-      mu_1 <- c(29, 30)  # class 1: neuron2 more active
-      Sigma_0 <- matrix(c(1.0, 0, 0, 1.0), nrow = 2)  # independent noise
-      Sigma_1 <- matrix(c(1.0, 0, 0, 1.0), nrow = 2)
+      # Extract Neuron 95, 90, 100 from sim_result, low GV condition only
+      df_lda <- sim_result() %>%
+        filter(GV == "low", Neuron %in% c(95, 90, 100)) %>%
+        pivot_wider(id_cols = c(Stimulus, Trial),
+                    names_from = Neuron, values_from = Spikes) %>%
+        rename(neuron1 = `95`, neuron2 = `90`, neuron3 = `100`) %>%
+        mutate(class = factor(ifelse(Stimulus == s1, 0, 1)))
       
-      # Generate base spike counts from multivariate normal
-      data0 <- mvrnorm(n, mu = mu_0, Sigma = Sigma_0)
-      data1 <- mvrnorm(n, mu = mu_1, Sigma = Sigma_1)
-      
-      # Apply gain variability: multiply each trial's responses by a shared gain factor.
-      # This introduces correlated variability across neurons within each trial.
-      gain0 <- rgamma(n, shape = 1/sigma_g^2, scale = sigma_g^2)
-      gain1 <- rgamma(n, shape = 1/sigma_g^2, scale = sigma_g^2)
-      data0[, 1] <- data0[, 1] * gain0
-      data0[, 2] <- data0[, 2] * gain0
-      data1[, 1] <- data1[, 1] * gain1
-      data1[, 2] <- data1[, 2] * gain1
+      data0 <- as.matrix(df_lda[df_lda$class == 0, c("neuron1", "neuron2", "neuron3")])
+      data1 <- as.matrix(df_lda[df_lda$class == 1, c("neuron1", "neuron2", "neuron3")])
+      n     <- nrow(data0)
       
       data <- data.frame(
-        class   = factor(c(rep(0, n), rep(1, n))),
-        neuron1 = c(data0[, 1], data1[, 1]),
-        neuron2 = c(data0[, 2], data1[, 2])
+        class   = df_lda$class,
+        neuron1 = df_lda$neuron1,
+        neuron2 = df_lda$neuron2,
+        neuron3 = df_lda$neuron3
       )
       
       # Compute mean difference vector: df = mu1 - mu0
-      neurons   <- c("neuron1", "neuron2")
+      neurons   <- c("neuron1", "neuron2", "neuron3")
       data0_sub <- data[data$class == 0, neurons]
       data1_sub <- data[data$class == 1, neurons]
       df_vec    <- colMeans(data1_sub) - colMeans(data0_sub)
       
-      # Pooled within-class covariance with Tikhonov regularization.
-      # Regularization (lambda * I) prevents singularity when neurons are correlated.
+      # Pooled within-class covariance with Tikhonov regularization
       lambda_reg <- 0.01
       Sigma_w    <- (cov(data0) + cov(data1)) / 2
       Sigma_w    <- Sigma_w + lambda_reg * diag(length(neurons))
       
       # Fisher's LDA discriminant axis: w = Sigma^{-1} * df
-      # Maximizes between-class separation relative to within-class variance.
       w        <- solve(Sigma_w) %*% df_vec
       w_scaled <- as.numeric(w)
       mean0    <- colMeans(data0)
       mean1    <- colMeans(data1)
       
-      # Linear Fisher Information: LFI = df^T * Sigma^{-1} * df
-      # d' = sqrt(LFI): theoretical discriminability along the optimal axis
+      # Linear Fisher Information and d' (theoretical)
       lfi <- t(df_vec) %*% solve(Sigma_w) %*% df_vec
       dp  <- sqrt(lfi)
       
-      # Project data onto w: scalar projection = x . w
+      # Project data onto w (1D)
       proj0 <- as.numeric(data0 %*% w)
       proj1 <- as.numeric(data1 %*% w)
       mu_proj0 <- mean(proj0)
       mu_proj1 <- mean(proj1)
-      # Empirical d' from the projected 1D distributions
-      sd_proj  <- sqrt((var(proj0) + var(proj1)) / 2)  # pooled SD
+      sd_proj  <- sqrt((var(proj0) + var(proj1)) / 2)
       dp_1d    <- (mu_proj1 - mu_proj0) / sd_proj
       
       list(
-        data     = data,
-        data0    = data0,
-        data1    = data1,
-        df_vec   = df_vec,
-        w_scaled = w_scaled,
-        mean0    = mean0,
-        mean1    = mean1,
-        dp       = dp,
-        proj0    = proj0,
-        proj1    = proj1,
-        dp_1d    = dp_1d,
-        mu_proj0 = mu_proj0,
-        mu_proj1 = mu_proj1,
-        n        = n
+        data      = data,
+        data0     = data0,
+        data1     = data1,
+        df_vec    = df_vec,
+        w_scaled  = w_scaled,
+        mean0     = mean0,
+        mean1     = mean1,
+        dp        = dp,
+        proj0     = proj0,
+        proj1     = proj1,
+        dp_1d     = dp_1d,
+        mu_proj0  = mu_proj0,
+        mu_proj1  = mu_proj1,
+        n         = n
       )
     })
   })
@@ -242,9 +228,9 @@ server <- function(input, output) {
     
     ggplot(nr, aes(x = Contrast, y = Max_firing)) +
       geom_line(linewidth = 0.7) +
-      geom_point(data = pts, aes(x = x, y = y), size = 3, color = "red") +
+      geom_point(data = pts, aes(x = x, y = y), size = 3, color = "black") +
       geom_text(data = pts, aes(x = x, y = y, label = label),
-                vjust = -1, hjust = c(-0.3, 1.3), size = 3.5, color = "red") +
+                vjust = -1, hjust = c(-0.3, 1.3), size = 3.5, color = "black") +
       annotate("text", x = 50, y = 130, label = "Naka-Rushton",
                vjust = 1, hjust = 0.5, size = 3.5) +
       scale_x_continuous(limits = c(0, 100), breaks = c(0, 25, 50, 75, 100)) +
@@ -341,13 +327,13 @@ server <- function(input, output) {
   })
   
   # ---- 3D scatter ----
-  # Responses of 3 neurons with preferred orientations at 60, 90, and 120 degrees.
+  # Responses of 3 neurons with preferred orientations at 95, 90, and 100 degrees.
   # stim1 = cross (+, size 3), stim2 = circle (filled, size 2).
   # Red = high GV, blue = low GV.
   output$p_3d <- renderPlotly({
     req(sim_result())
     df_3d <- sim_result() %>%
-      filter(Neuron %in% c(60, 90, 120)) %>%
+      filter(Neuron %in% c(95, 90, 100)) %>%
       pivot_wider(id_cols = c(GV, Stimulus, Trial),
                   names_from = Neuron, values_from = Spikes)
     
@@ -355,21 +341,21 @@ server <- function(input, output) {
     
     plot_ly() %>%
       add_trace(data = df_3d %>% filter(Stimulus == s1),
-                x = ~`60`, y = ~`90`, z = ~`120`,
+                x = ~`95`, y = ~`90`, z = ~`100`,
                 color = ~factor(GV), colors = c("#E41A1C", "#377EB8"),
                 type = "scatter3d", mode = "markers",
                 marker = list(size = 3, symbol = "cross"),
                 name = ~paste0(GV, " stim", s1)) %>%
       add_trace(data = df_3d %>% filter(Stimulus == s2),
-                x = ~`60`, y = ~`90`, z = ~`120`,
+                x = ~`95`, y = ~`90`, z = ~`100`,
                 color = ~factor(GV), colors = c("#E41A1C", "#377EB8"),
                 type = "scatter3d", mode = "markers",
                 marker = list(size = 2, symbol = "circle"),
                 name = ~paste0(GV, " stim", s2)) %>%
       layout(scene = list(
-        xaxis = list(title = "Neuron 60",  range = c(0, 200)),
+        xaxis = list(title = "Neuron 95",  range = c(0, 200)),
         yaxis = list(title = "Neuron 90",  range = c(0, 200)),
-        zaxis = list(title = "Neuron 120", range = c(0, 200)),
+        zaxis = list(title = "Neuron 100", range = c(0, 200)),
         aspectmode = "cube"
       ))
   })
@@ -381,19 +367,19 @@ server <- function(input, output) {
     req(sim_result())
     withProgress(message = "Fitting decision boundary...", {
       df_scatter <- sim_result() %>%
-        filter(Neuron %in% c(60, 90, 120)) %>%
+        filter(Neuron %in% c(95, 90, 100)) %>%
         pivot_wider(id_cols = c(GV, Stimulus, Trial),
                     names_from = Neuron, values_from = Spikes) %>%
         mutate(stim_bin = as.numeric(as.factor(Stimulus)) - 1)  # 0 = stim1, 1 = stim2
       
-      fit <- glm(stim_bin ~ `60` + `90` + `120`,
+      fit <- glm(stim_bin ~ `95` + `90` + `100`,
                  data = df_scatter, family = binomial)
       
       # Evaluate predicted probability on a 3D grid and extract the boundary surface
       x_seq <- seq(0, 200, length.out = 15)
       y_seq <- seq(0, 200, length.out = 15)
       z_seq <- seq(0, 200, length.out = 15)
-      grid3d <- expand.grid(`60` = x_seq, `90` = y_seq, `120` = z_seq)
+      grid3d <- expand.grid(`95` = x_seq, `90` = y_seq, `100` = z_seq)
       grid3d$prob <- predict(fit, newdata = grid3d, type = "response")
       decision_points <- grid3d %>% filter(abs(prob - 0.5) < 0.03)
       
@@ -401,13 +387,13 @@ server <- function(input, output) {
       
       p <- plot_ly() %>%
         add_trace(data = df_scatter %>% filter(Stimulus == s1),
-                  x = ~`60`, y = ~`90`, z = ~`120`,
+                  x = ~`95`, y = ~`90`, z = ~`100`,
                   color = ~factor(GV), colors = c("#E41A1C", "#377EB8"),
                   type = "scatter3d", mode = "markers",
                   marker = list(size = 3, symbol = "cross"),
                   name = ~paste0(GV, " stim", s1)) %>%
         add_trace(data = df_scatter %>% filter(Stimulus == s2),
-                  x = ~`60`, y = ~`90`, z = ~`120`,
+                  x = ~`95`, y = ~`90`, z = ~`100`,
                   color = ~factor(GV), colors = c("#E41A1C", "#377EB8"),
                   type = "scatter3d", mode = "markers",
                   marker = list(size = 2, symbol = "circle"),
@@ -416,52 +402,72 @@ server <- function(input, output) {
       if (nrow(decision_points) > 0) {
         p <- p %>%
           add_trace(data = decision_points,
-                    x = ~`60`, y = ~`90`, z = ~`120`,
+                    x = ~`95`, y = ~`90`, z = ~`100`,
                     type = "mesh3d", opacity = 0.4,
                     color = I("navy"), name = "Decision boundary",
                     inherit = FALSE)
       }
       p %>% layout(scene = list(
-        xaxis = list(title = "Neuron 60",  range = c(0, 200)),
+        xaxis = list(title = "Neuron 95",  range = c(0, 200)),
         yaxis = list(title = "Neuron 90",  range = c(0, 200)),
-        zaxis = list(title = "Neuron 120", range = c(0, 200)),
+        zaxis = list(title = "Neuron 100", range = c(0, 200)),
         aspectmode = "cube"
       ))
     })
   })
   
   # ---- LDA 2D ----
-  # 2D scatter of two-neuron responses.
-  # Green arrow (df): mean difference vector mu1 - mu0.
-  # Purple arrow (w): LDA discriminant axis = Sigma^{-1} * df.
-  # With gain variability, the covariance Sigma is inflated along the sum direction,
-  # rotating w away from df and reducing discriminability.
+  # Two panels showing pairwise neuron responses:
+  #   Left:  Neuron 95 vs Neuron 90
+  #   Right: Neuron 90 vs Neuron 100
+  # Green arrow (df): mean difference vector. Purple arrow (w): LDA discriminant axis.
+  # Both vectors are projected onto each 2D subspace for display.
   output$g_lda_2d <- renderPlot({
     req(lda_result())
     r <- lda_result()
     
-    arrows_df <- data.frame(
-      x    = c(r$mean0[1], r$mean0[1]),
-      y    = c(r$mean0[2], r$mean0[2]),
-      xend = c(r$mean0[1] + r$df_vec[1], r$mean0[1] + r$w_scaled[1]),
-      yend = c(r$mean0[2] + r$df_vec[2], r$mean0[2] + r$w_scaled[2]),
-      type = c("df", "w")
-    )
+    # Helper: make one 2D panel given indices into the 3D space
+    make_panel <- function(ix, iy, xlab, ylab) {
+      
+      df_plot <- data.frame(
+        x     = c(r$data0[, ix], r$data1[, ix]),
+        y     = c(r$data0[, iy], r$data1[, iy]),
+        class = factor(c(rep(0, r$n), rep(1, r$n)))
+      )
+      
+      arrows_df <- data.frame(
+        x    = c(r$mean0[ix], r$mean0[ix]),
+        y    = c(r$mean0[iy], r$mean0[iy]),
+        xend = c(r$mean0[ix] + r$df_vec[ix], r$mean0[ix] + r$w_scaled[ix]),
+        yend = c(r$mean0[iy] + r$df_vec[iy], r$mean0[iy] + r$w_scaled[iy]),
+        type = c("df", "w")
+      )
+      
+      ggplot(df_plot, aes(x = x, y = y, color = class)) +
+        geom_point(size = 1.5, alpha = 0.4) +
+        annotate("point", x = r$mean0[ix], y = r$mean0[iy],
+                 color = "blue", size = 3) +
+        annotate("point", x = r$mean1[ix], y = r$mean1[iy],
+                 color = "red", size = 3) +
+        geom_segment(data = arrows_df,
+                     aes(x = x, y = y, xend = xend, yend = yend, color = type),
+                     arrow = arrow(length = unit(0.15, "cm")), lwd = 1.2,
+                     inherit.aes = FALSE) +
+        coord_fixed() +
+        scale_color_manual(values = c("0" = "blue", "1" = "red",
+                                      "df" = "green", "w" = "purple")) +
+        labs(x = xlab, y = ylab, color = "Legend") +
+        theme_minimal(base_size = 12)
+    }
     
-    ggplot(r$data, aes(x = neuron1, y = neuron2, color = class)) +
-      geom_point(size = 2, alpha = 0.5) +
-      geom_point(aes(x = r$mean0[1], y = r$mean0[2]), color = "blue", size = 3) +
-      geom_point(aes(x = r$mean1[1], y = r$mean1[2]), color = "red",  size = 3) +
-      geom_segment(data = arrows_df,
-                   aes(x = x, y = y, xend = xend, yend = yend, color = type),
-                   arrow = arrow(length = unit(0.15, "cm")), lwd = 1.2) +
-      coord_fixed() +
-      scale_color_manual(values = c("0" = "blue", "1" = "red",
-                                    "df" = "green", "w" = "purple")) +
-      labs(title = "Mean difference vector df & discriminant axis w",
-           subtitle = paste("d' =", round(r$dp, 3)),
-           x = "Neuron 1", y = "Neuron 2", color = "Legend") +
-      theme_minimal(base_size = 13)
+    p1 <- make_panel(1, 2, "Neuron 95", "Neuron 90")
+    p2 <- make_panel(2, 3, "Neuron 90", "Neuron 100")
+    
+    patchwork::wrap_plots(p1, p2, nrow = 1) +
+      patchwork::plot_annotation(
+        title    = "Mean difference vector df & discriminant axis w",
+        subtitle = paste("d' =", round(r$dp, 3))
+      )
   })
   
   # ---- LDA 1D ----
