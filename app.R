@@ -264,12 +264,11 @@ server <- function(input, output, session) {
   })
   
   # ---- Tuning curve plot ----
+  # Shows Condition A (top) and Condition B (bottom) tuning curves,
+  # illustrating how spontaneous activity raises the baseline.
   output$g_tuning <- renderPlot({
-    req(input$contrast_A, input$stim1, input$stim2)
+    req(input$contrast_A, input$contrast_B, input$stim1, input$stim2)
     Rmax <- 115; C50 <- 19.3; n_nr <- 2.9
-    contrast     <- input$contrast_A
-    max_fr       <- Rmax * contrast^n_nr / (contrast^n_nr + C50^n_nr)
-    spont        <- input$spont_A
     tuning_width <- 20; n_neurons <- 180
     orientations <- seq(1, 180)
     preferred_orientations <- seq(1, 180, length.out = n_neurons)
@@ -278,48 +277,46 @@ server <- function(input, output, session) {
       h <- seq(0, 1, length.out = n + 1)[-(n + 1)]; hsv(h, 1, 1)
     }
     colors <- color_wheel(n_neurons)
+    neurons_show <- seq(1, n_neurons, by = 18)
     
-    tuning_curves <- matrix(0, nrow = n_neurons, ncol = length(orientations))
-    for (i in 1:n_neurons) {
-      tuning_curves[i, ] <- spont + max_fr * exp(
-        -0.5 * (pmin(abs(orientations - preferred_orientations[i]),
-                     180 - abs(orientations - preferred_orientations[i]))^2
-        ) / tuning_width^2
-      )
+    make_tc_df <- function(max_fr, spont, cond_label) {
+      tc <- matrix(0, nrow = n_neurons, ncol = length(orientations))
+      for (i in 1:n_neurons) {
+        tc[i, ] <- spont + max_fr * exp(
+          -0.5 * (pmin(abs(orientations - preferred_orientations[i]),
+                       180 - abs(orientations - preferred_orientations[i]))^2
+          ) / tuning_width^2
+        )
+      }
+      do.call(rbind, lapply(neurons_show, function(i) {
+        data.frame(Orientation = orientations, FiringRate = tc[i, ],
+                   Neuron = i, Color = colors[i], Condition = cond_label,
+                   spont = spont, max_fr = max_fr)
+      }))
     }
     
-    neurons_show <- seq(1, n_neurons, by = 18)
-    df_tuning <- do.call(rbind, lapply(neurons_show, function(i) {
-      data.frame(Orientation = orientations, FiringRate = tuning_curves[i, ],
-                 Neuron = i, Color = colors[i])
-    }))
+    max_fr_A <- Rmax * input$contrast_A^n_nr / (input$contrast_A^n_nr + C50^n_nr)
+    max_fr_B <- Rmax * input$contrast_B^n_nr / (input$contrast_B^n_nr + C50^n_nr)
     
-    s1 <- input$stim1; idx1 <- which.min(abs(preferred_orientations - s1))
-    s2 <- input$stim2; idx2 <- which.min(abs(preferred_orientations - s2))
-    df_highlight <- rbind(
-      data.frame(Orientation = orientations, FiringRate = tuning_curves[idx1, ],
-                 label = paste0("S1 (", s1, "°)")),
-      data.frame(Orientation = orientations, FiringRate = tuning_curves[idx2, ],
-                 label = paste0("S2 (", s2, "°)"))
-    )
+    df_all <- rbind(
+      make_tc_df(max_fr_A, input$spont_A, paste0("Condition A")),
+      make_tc_df(max_fr_B, input$spont_B, paste0("Condition B"))
+    ) %>% mutate(Condition = factor(Condition,
+                                    levels = c(paste0("Condition A"),
+                                               paste0("Condition B"))))
     
-    y_max <- max(tuning_curves) * 1.1
-    ggplot() +
-      geom_line(data = df_tuning,
-                aes(x = Orientation, y = FiringRate, color = Color, group = Neuron)) +
+    y_max <- max(df_all$FiringRate) * 1.05
+    
+    ggplot(df_all, aes(x = Orientation, y = FiringRate,
+                       color = Color, group = Neuron)) +
+      geom_line() +
       scale_color_identity() +
-      geom_line(data = df_highlight,
-                aes(x = Orientation, y = FiringRate, linetype = label, group = label),
-                color = "black", linewidth = 1.2) +
-      annotate("text", x = 90, y = y_max,
-               label = paste0("Cond A: Contrast=", input$contrast_A,
-                              "%, Spont=", input$spont_A),
-               vjust = 1, hjust = 0.5, size = 3) +
+      facet_wrap(~ Condition, nrow = 2) +
       scale_x_continuous(breaks = c(0, 60, 120, 180)) +
-      scale_linetype_manual(values = c("solid", "dashed"), name = NULL) +
+      coord_cartesian(ylim = c(0, y_max)) +
       labs(x = "Orientation (°)", y = "Spikes") +
       theme_classic(base_size = 11) +
-      theme(legend.position = "bottom")
+      theme(strip.text = element_text(size = 10, face = "bold"))
   })
   
   # ---- Total spike count ----
