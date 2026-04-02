@@ -331,11 +331,11 @@ server <- function(input, output, session) {
     max_fr_A <- Rmax * input$contrast_A^n_nr / (input$contrast_A^n_nr + C50^n_nr)
     max_fr_B <- Rmax * input$contrast_B^n_nr / (input$contrast_B^n_nr + C50^n_nr)
     df_all <- rbind(
-      make_tc_df(max_fr_A, input$spont_A, paste0("Condition A  (spont=", input$spont_A, ")")),
-      make_tc_df(max_fr_B, input$spont_B, paste0("Condition B  (spont=", input$spont_B, ")"))
+      make_tc_df(max_fr_A, input$spont_A, paste0("Condition A")),
+      make_tc_df(max_fr_B, input$spont_B, paste0("Condition B"))
     ) %>% mutate(Condition = factor(Condition,
-                                    levels = c(paste0("Condition A  (spont=", input$spont_A, ")"),
-                                               paste0("Condition B  (spont=", input$spont_B, ")"))))
+                                    levels = c(paste0("Condition A"),
+                                               paste0("Condition B"))))
     y_max <- max(df_all$FiringRate) * 1.05
     # ggplot(df_all, aes(x = Orientation, y = FiringRate, color = Color, group = Neuron)) +
     #   geom_line() +
@@ -355,9 +355,10 @@ server <- function(input, output, session) {
       scale_color_identity() +
       facet_wrap(~ Condition, nrow = 2) +
       scale_x_continuous(breaks = c(0, 60, 120, 180)) +
-      coord_cartesian(ylim = c(0, y_max)) +
+      scale_y_continuous(breaks = c(0, 25, 50, 75, 100, 125)) +
+      coord_cartesian(ylim = c(0, 125)) +
       labs(x = "Orientation (°)", y = "Spikes") +
-      theme_classic(base_size = 14) +
+      theme_classic(base_size = 20) +
       theme(strip.text = element_text(size = 13, face = "bold"))
     
     # Apply per-facet strip colors using ggplot internals
@@ -444,7 +445,7 @@ server <- function(input, output, session) {
                 marker = list(size = 1.7, symbol = "circle"),
                 name = ~paste0("Cond ", Condition, "; S2 (", s2, " deg)")) %>%
       layout(
-        font   = list(size = 16),  # 全テキスト・目盛りを大きく
+        font   = list(size = 12),  # 全テキスト・目盛りを大きく
         legend = list(font = list(size = 16)),
         scene  = list(
           xaxis = list(title = "Neuron 95",  range = c(0, 180)),
@@ -500,7 +501,7 @@ server <- function(input, output, session) {
         }
       }
       p %>% layout(
-        font   = list(size = 16),  # 全テキスト・目盛りを大きく
+        font   = list(size = 12),  # 全テキスト・目盛りを大きく
         legend = list(font = list(size = 16)),
         scene  = list(
           xaxis = list(title = "Neuron 95",  range = c(0, 180)),
@@ -532,13 +533,13 @@ server <- function(input, output, session) {
   output$text_density <- renderUI({
     txt <- subtitle_texts[[input$preset]]$density
     if (is.null(txt)) return(NULL)
-    tags$p(txt, style = "color:#555; font-style:italic; margin-top:6px; font-size:13px;")
+    tags$p(txt, style = "color:#555; font-style:italic; margin-top:6px; font-size:18px;")
   })
   
   output$text_boundary <- renderUI({
     txt <- subtitle_texts[[input$preset]]$boundary
     if (is.null(txt)) return(NULL)
-    tags$p(txt, style = "color:#555; font-style:italic; margin-top:6px; font-size:13px;")
+    tags$p(txt, style = "color:#555; font-style:italic; margin-top:6px; font-size:18px;")
   })
 }
 
