@@ -67,16 +67,16 @@ ui <- fluidPage(
       sliderInput("n_trials", "Number of trials", min = 50, max = 500, value = 100, step = 50),
       hr(),
       h5("Condition A", style = "color:#E41A1C; font-weight:bold;"),
-      div(id = "wrap_contrast_A", sliderInput("contrast_A", "Contrast A (%)",        min = 1,    max = 100, value = 40,   step = 1)),
-      div(id = "wrap_sigma_g_A",  sliderInput("sigma_g_A",  "Gain variability A",    min = 0.01, max = 0.5, value = 0.05, step = 0.01)),
-      div(id = "wrap_spont_A",    sliderInput("spont_A",    "Baseline activity A",   min = 0,    max = 25,  value = 2,    step = 0.5)),
-      div(id = "wrap_fano_A",     sliderInput("fano_A",     "Fano Factor A",         min = 1,    max = 5,   value = 1,    step = 0.5)),
+      div(id = "wrap_contrast_A", sliderInput("contrast_A", "Stimulus contrast (%)",        min = 1,    max = 100, value = 40,   step = 1)),
+      div(id = "wrap_sigma_g_A",  sliderInput("sigma_g_A",  "Gain variability",    min = 0.01, max = 0.5, value = 0.05, step = 0.01)),
+      div(id = "wrap_spont_A",    sliderInput("spont_A",    "Baseline activity",   min = 0,    max = 25,  value = 2,    step = 0.5)),
+      div(id = "wrap_fano_A",     sliderInput("fano_A",     "Fano Factor",         min = 1,    max = 5,   value = 1,    step = 0.5)),
       hr(),
       h5("Condition B", style = "color:#377EB8; font-weight:bold;"),
-      div(id = "wrap_contrast_B", sliderInput("contrast_B", "Contrast B (%)",        min = 1,    max = 100, value = 40,   step = 1)),
-      div(id = "wrap_sigma_g_B",  sliderInput("sigma_g_B",  "Gain variability B",    min = 0.01, max = 0.5, value = 0.05, step = 0.01)),
-      div(id = "wrap_spont_B",    sliderInput("spont_B",    "Baseline activity B",   min = 0,    max = 25,  value = 2,    step = 0.5)),
-      div(id = "wrap_fano_B",     sliderInput("fano_B",     "Fano Factor B",         min = 1,    max = 10,  value = 1,    step = 0.5)),
+      div(id = "wrap_contrast_B", sliderInput("contrast_B", "Stimulus contrast (%)",        min = 1,    max = 100, value = 40,   step = 1)),
+      div(id = "wrap_sigma_g_B",  sliderInput("sigma_g_B",  "Gain variability",    min = 0.01, max = 0.5, value = 0.05, step = 0.01)),
+      div(id = "wrap_spont_B",    sliderInput("spont_B",    "Baseline activity",   min = 0,    max = 25,  value = 2,    step = 0.5)),
+      div(id = "wrap_fano_B",     sliderInput("fano_B",     "Fano Factor",         min = 1,    max = 10,  value = 1,    step = 0.5)),
       hr(),
       actionButton("run", "Run simulation", class = "btn-primary")
     ),
@@ -84,25 +84,29 @@ ui <- fluidPage(
       h4("Stimuli"),
       plotOutput("g_stimuli", height = "180px"),
       hr(),
-      h4("Tuning curves"),
-      fluidRow(
-        column(6, plotOutput("g_nr")),
-        column(6, plotOutput("g_tuning"))
+      # ---- Encoding section ----
+      div(style = "background:#fffaf5; padding:15px; border-left:5px solid #F5A623; margin-bottom:16px;",
+          h4("Encoding", style = "color:#F5A623; margin-top:0;"),
+          h5("Tuning curves"),
+          fluidRow(
+            column(6, plotOutput("g_nr")),
+            column(6, plotOutput("g_tuning"))
+          ),
+          hr(),
+          h5("3D scatter"),
+          plotlyOutput("p_3d")
       ),
-      hr(),
-      h4("3D scatter"),
-      plotlyOutput("p_3d"),
-      # hr(),
-      # h4("Fano Factor (empirical vs setting)"),
-      # verbatimTextOutput("g_fano"),
-      hr(),
-      h4("Total spike count"),
-      plotOutput("g_density"),
-      uiOutput("text_density"),
-      hr(),
-      h4("Decision boundary"),
-      plotlyOutput("p_boundary"),
-      uiOutput("text_boundary")
+      # ---- Decoding / Read-out section ----
+      div(style = "background:#f5fffe; padding:15px; border-left:5px solid #17A589; margin-bottom:16px;",
+          h4("Decoding / Read-out", style = "color:#17A589; margin-top:0;"),
+          h5("Total spike count"),
+          plotOutput("g_density"),
+          uiOutput("text_density"),
+          hr(),
+          h5("Decision boundary"),
+          plotlyOutput("p_boundary"),
+          uiOutput("text_boundary")
+      )
     )
   )
 )
@@ -331,24 +335,13 @@ server <- function(input, output, session) {
     max_fr_A <- Rmax * input$contrast_A^n_nr / (input$contrast_A^n_nr + C50^n_nr)
     max_fr_B <- Rmax * input$contrast_B^n_nr / (input$contrast_B^n_nr + C50^n_nr)
     df_all <- rbind(
-      make_tc_df(max_fr_A, input$spont_A, paste0("Condition A")),
-      make_tc_df(max_fr_B, input$spont_B, paste0("Condition B"))
+      make_tc_df(max_fr_A, input$spont_A, "Condition A"),
+      make_tc_df(max_fr_B, input$spont_B, "Condition B")
     ) %>% mutate(Condition = factor(Condition,
-                                    levels = c(paste0("Condition A"),
-                                               paste0("Condition B"))))
+                                    levels = c("Condition A", "Condition B")))
     y_max <- max(df_all$FiringRate) * 1.05
-    # ggplot(df_all, aes(x = Orientation, y = FiringRate, color = Color, group = Neuron)) +
-    #   geom_line() +
-    #   scale_color_identity() +
-    #   facet_wrap(~ Condition, nrow = 2) +
-    #   scale_x_continuous(breaks = c(0, 60, 120, 180)) +
-    #   coord_cartesian(ylim = c(0, y_max)) +
-    #   labs(x = "Orientation (°)", y = "Spikes") +
-    #   theme_classic(base_size = 20) +
-    #   theme(strip.text = element_text(size = 18, face = "bold"))
-    # Strip text colors: A = red, B = blue
-    strip_colors <- c("#377EB8", "#E41A1C")
-    names(strip_colors) <- levels(df_all$Condition)
+    
+    strip_colors <- c("Condition A" = "#E41A1C", "Condition B" = "#377EB8")
     
     g <- ggplot(df_all, aes(x = Orientation, y = FiringRate, color = Color, group = Neuron)) +
       geom_line() +
@@ -361,10 +354,11 @@ server <- function(input, output, session) {
       theme_classic(base_size = 20) +
       theme(strip.text = element_text(size = 13, face = "bold"))
     
-    # Apply per-facet strip colors using ggplot internals
     gb <- ggplot_build(g)
     gt <- ggplot_gtable(gb)
     strip_idx <- which(grepl("strip", gt$layout$name))
+    # sort by t (top position) so index 1 = top panel (Condition A)
+    strip_idx <- strip_idx[order(gt$layout$t[strip_idx])]
     fills <- strip_colors[levels(df_all$Condition)]
     for (i in seq_along(strip_idx)) {
       gt$grobs[[strip_idx[i]]]$grobs[[1]]$children[[1]]$gp$fill <- fills[i]
@@ -373,42 +367,6 @@ server <- function(input, output, session) {
     grid::grid.draw(gt)
   })
   
-  # # ---- Fano Factor (empirical) ----
-  # output$g_fano <- renderText({
-  #   req(sim_result())
-  #   ff <- sim_result() %>%
-  #     group_by(Condition, Neuron) %>%
-  #     summarise(
-  #       mean_spikes = mean(Spikes),
-  #       var_spikes  = var(Spikes),
-  #       fano        = var_spikes / mean_spikes,
-  #       .groups = "drop"
-  #     ) %>%
-  #     filter(mean_spikes > 0) %>%
-  #     group_by(Condition) %>%
-  #     summarise(
-  #       mean_fano = mean(fano, na.rm = TRUE),
-  #       sd_fano   = sd(fano,   na.rm = TRUE),
-  #       .groups = "drop"
-  #     )
-  #   lines <- c(
-  #     sprintf("%-14s  %s  %s", "", "mean Fano (SD across neurons)", "Setting"),
-  #     "──────────────────────────────────────────────"
-  #   )
-  #   for (cond in c("A", "B")) {
-  #     setting <- if (cond == "A") input$fano_A else input$fano_B
-  #     row <- ff %>% filter(Condition == cond)
-  #     if (nrow(row) == 0) {
-  #       lines <- c(lines, sprintf("Condition %s:  NA                             %.1f", cond, setting))
-  #     } else {
-  #       lines <- c(lines,
-  #                  sprintf("Condition %s:  %.2f (SD = %.2f)               %.1f",
-  #                          cond, row$mean_fano, row$sd_fano, setting))
-  #     }
-  #   }
-  #   paste(lines, collapse = "\n")
-  # })
-  # 
   # ---- Total spike count ----
   output$g_density <- renderPlot({
     req(sim_result())
@@ -445,7 +403,7 @@ server <- function(input, output, session) {
                 marker = list(size = 1.7, symbol = "circle"),
                 name = ~paste0("Cond ", Condition, "; S2 (", s2, " deg)")) %>%
       layout(
-        font   = list(size = 12),  # 全テキスト・目盛りを大きく
+        font   = list(size = 12),
         legend = list(font = list(size = 16)),
         scene  = list(
           xaxis = list(title = "Neuron 95",  range = c(0, 180)),
@@ -501,7 +459,7 @@ server <- function(input, output, session) {
         }
       }
       p %>% layout(
-        font   = list(size = 12),  # 全テキスト・目盛りを大きく
+        font   = list(size = 12),
         legend = list(font = list(size = 16)),
         scene  = list(
           xaxis = list(title = "Neuron 95",  range = c(0, 180)),
