@@ -46,6 +46,28 @@ active_sliders <- list(
 all_sliders <- c("contrast_A", "contrast_B", "sigma_g_A", "sigma_g_B",
                  "spont_A", "spont_B", "fano_A", "fano_B")
 
+# Key assumption definitions per preset
+key_assumptions <- list(
+  manual     = NULL,
+  samaha     = "Lower α can be interpreted as increased feature-independent baseline activity(citation)",
+  blindsight = "Unstable → increased gain variability",
+  subjective = "Inattention induces high Fano Factor (greater spike variability)."
+)
+
+# Tooltip text per slider per preset (NULL = no tooltip)
+slider_tooltips <- list(
+  samaha = list(
+    spont_A = "Lower α can be interpreted as increased feature-independent baseline activity(citation)."
+  ),
+  blindsight = list(
+    sigma_g_A = "assuming increased gain variability"
+  ),
+  subjective = list(
+    fano_A = "Fano Factor gets higher under inattention (citation)."
+  ),
+  manual = list()
+)
+
 # ============================================================
 # Helper: collapsible note panel
 # ============================================================
@@ -71,8 +93,27 @@ ui <- fluidPage(
     .slider-disabled { opacity: 0.35; pointer-events: none; }
     .panel-info > .panel-heading { background-color: #f0f0f0; border-color: #cccccc; color: #444; font-size:13px; padding: 6px 12px; }
     .panel-info { border-color: #cccccc; margin-top: 8px; }
+    .key-assumption-box {
+      background: #fffbe6;
+      border-left: 4px solid #F5A623;
+      padding: 10px 14px;
+      margin-bottom: 12px;
+      font-size: 14px;
+      color: #555;
+      line-height: 1.6;
+      border-radius: 3px;
+    }
+    .tooltip-inner { max-width: 3000px; text-align: left; }
   ")),
-  titlePanel("Neural Population Response Simulator"),
+  tags$script(HTML("
+    Shiny.addCustomMessageHandler('updateTooltip', function(msg) {
+      var el = document.getElementById(msg.id);
+      if (el) {
+        $(el).closest('.form-group').attr('title', msg.title)
+             .tooltip('destroy').tooltip({placement: 'right'});
+      }
+    });
+  ")),
   sidebarLayout(
     sidebarPanel(
       selectInput("preset", "Preset",
@@ -106,9 +147,10 @@ ui <- fluidPage(
       # ---- Encoding section ----
       div(style = "background:#fffaf5; padding:15px; border-left:5px solid #F5A623; margin-bottom:16px;",
           h4("Encoding", style = "color:#F5A623; margin-top:0;"),
+          uiOutput("key_assumption_box"),   # Key assumption box
           h5("Tuning curves"),
           note_panel("note_tuning", tagList(
-            tags$p("Each neuron has a Gaussian orientation tuning curve centered on its preferred orientation. "),
+            tags$p("Each neuron has a Gaussian orientation tuning curve centered on its preferred orientation."),
             tags$p("The Naka-Rushton function maps stimulus contrast to peak neural response (height of tuning curve):"),
             tags$p(HTML("R(c) = R<sub>max</sub> &times; c<sup>n</sup> / (c<sup>n</sup> + C<sub>50</sub><sup>n</sup>)")),
             tags$p(HTML("where R<sub>max</sub> = 115, C<sub>50</sub> = 19.3, n = 2.9 (Citation).")),
@@ -143,7 +185,7 @@ ui <- fluidPage(
             tags$p("A logistic regression classifier is fit to the 3-neuron spike counts to find the hyperplane that best separates S1 from S2 responses."),
             tags$p("The red / blue surface shows the decision boundary where P(S2) = 0.5 for condition A / B, independently."),
             tags$p("Orientation sensitivity is given by the discriminability between spike distributions,"),
-            tags$p(" with decision uncertainty corresponding to the distance of each spike point from the discrimination boundary.")
+            tags$p("with decision uncertainty corresponding to the distance of each spike point from the discrimination boundary.")
           )),
           plotlyOutput("p_boundary"),
           uiOutput("text_boundary")
@@ -157,7 +199,7 @@ ui <- fluidPage(
 # ============================================================
 server <- function(input, output, session) {
   
-  # ---- Preset: update sliders and enable/disable ----
+  # ---- Preset: update sliders, enable/disable, update tooltips ----
   observeEvent(input$preset, {
     p      <- presets[[input$preset]]
     active <- active_sliders[[input$preset]]
@@ -174,6 +216,27 @@ server <- function(input, output, session) {
       if (sl %in% active) removeClass(wrap_id, "slider-disabled")
       else                 addClass(wrap_id,    "slider-disabled")
     }
+    # Update tooltips via JavaScript
+    tips <- slider_tooltips[[input$preset]]
+    session$sendCustomMessage("updateTooltip", list(
+      id    = "spont_A",
+      title = if (!is.null(tips$spont_A))   tips$spont_A   else ""
+    ))
+    session$sendCustomMessage("updateTooltip", list(
+      id    = "sigma_g_A",
+      title = if (!is.null(tips$sigma_g_A)) tips$sigma_g_A else ""
+    ))
+    session$sendCustomMessage("updateTooltip", list(
+      id    = "fano_A",
+      title = if (!is.null(tips$fano_A))    tips$fano_A    else ""
+    ))
+  })
+  
+  # ---- Key assumption box ----
+  output$key_assumption_box <- renderUI({
+    txt <- key_assumptions[[input$preset]]
+    if (is.null(txt)) return(NULL)
+    tags$div(class = "key-assumption-box", txt)
   })
   
   # ---- sim_result ----
@@ -234,8 +297,6 @@ server <- function(input, output, session) {
       rbind(df_A, df_B)
     })
   })
-  
-  
   
   # ---- Stimuli: Gabor patches ----
   output$g_stimuli <- renderPlot({
