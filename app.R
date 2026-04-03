@@ -1,5 +1,6 @@
 library(shiny)
 library(shinyjs)
+library(shinyBS)
 library(plotly)
 library(tidyverse)
 library(patchwork)
@@ -46,12 +47,30 @@ all_sliders <- c("contrast_A", "contrast_B", "sigma_g_A", "sigma_g_B",
                  "spont_A", "spont_B", "fano_A", "fano_B")
 
 # ============================================================
+# Helper: collapsible note panel
+# ============================================================
+note_panel <- function(id, content) {
+  tagList(
+    bsCollapse(
+      id = id,
+      bsCollapsePanel(
+        title = "📖",
+        style = "info",
+        tags$div(style = "font-size:14px; color:#888; line-height:1.7;", content)
+      )
+    )
+  )
+}
+
+# ============================================================
 # UI
 # ============================================================
 ui <- fluidPage(
   useShinyjs(),
   tags$style(HTML("
     .slider-disabled { opacity: 0.35; pointer-events: none; }
+    .panel-info > .panel-heading { background-color: #f0f0f0; border-color: #cccccc; color: #444; font-size:13px; padding: 6px 12px; }
+    .panel-info { border-color: #cccccc; margin-top: 8px; }
   ")),
   titlePanel("Neural Population Response Simulator"),
   sidebarLayout(
@@ -67,43 +86,63 @@ ui <- fluidPage(
       sliderInput("n_trials", "Number of trials", min = 50, max = 500, value = 100, step = 50),
       hr(),
       h5("Condition A", style = "color:#E41A1C; font-weight:bold;"),
-      div(id = "wrap_contrast_A", sliderInput("contrast_A", "Stimulus contrast (%)",        min = 1,    max = 100, value = 40,   step = 1)),
-      div(id = "wrap_sigma_g_A",  sliderInput("sigma_g_A",  "Gain variability",    min = 0.01, max = 0.5, value = 0.05, step = 0.01)),
-      div(id = "wrap_spont_A",    sliderInput("spont_A",    "Baseline activity",   min = 0,    max = 25,  value = 2,    step = 0.5)),
-      div(id = "wrap_fano_A",     sliderInput("fano_A",     "Fano Factor",         min = 1,    max = 5,   value = 1,    step = 0.5)),
+      div(id = "wrap_contrast_A", sliderInput("contrast_A", "Stimulus contrast (%)", min = 1,    max = 100, value = 40,   step = 1)),
+      div(id = "wrap_sigma_g_A",  sliderInput("sigma_g_A",  "Gain variability",      min = 0.01, max = 0.5, value = 0.05, step = 0.01)),
+      div(id = "wrap_spont_A",    sliderInput("spont_A",    "Baseline activity",     min = 0,    max = 25,  value = 2,    step = 0.5)),
+      div(id = "wrap_fano_A",     sliderInput("fano_A",     "Fano Factor",           min = 1,    max = 5,   value = 1,    step = 0.5)),
       hr(),
       h5("Condition B", style = "color:#377EB8; font-weight:bold;"),
-      div(id = "wrap_contrast_B", sliderInput("contrast_B", "Stimulus contrast (%)",        min = 1,    max = 100, value = 40,   step = 1)),
-      div(id = "wrap_sigma_g_B",  sliderInput("sigma_g_B",  "Gain variability",    min = 0.01, max = 0.5, value = 0.05, step = 0.01)),
-      div(id = "wrap_spont_B",    sliderInput("spont_B",    "Baseline activity",   min = 0,    max = 25,  value = 2,    step = 0.5)),
-      div(id = "wrap_fano_B",     sliderInput("fano_B",     "Fano Factor",         min = 1,    max = 10,  value = 1,    step = 0.5)),
+      div(id = "wrap_contrast_B", sliderInput("contrast_B", "Stimulus contrast (%)", min = 1,    max = 100, value = 40,   step = 1)),
+      div(id = "wrap_sigma_g_B",  sliderInput("sigma_g_B",  "Gain variability",      min = 0.01, max = 0.5, value = 0.05, step = 0.01)),
+      div(id = "wrap_spont_B",    sliderInput("spont_B",    "Baseline activity",     min = 0,    max = 25,  value = 2,    step = 0.5)),
+      div(id = "wrap_fano_B",     sliderInput("fano_B",     "Fano Factor",           min = 1,    max = 10,  value = 1,    step = 0.5)),
       hr(),
       actionButton("run", "Run simulation", class = "btn-primary")
     ),
     mainPanel(
       h4("Stimuli"),
       plotOutput("g_stimuli", height = "180px"),
+      note_panel("note_stimuli", tagList(
+        tags$p("Sample text: Each Gabor patch represents one stimulus orientation. Contrast is set independently for Condition A and B via the sliders.")
+      )),
       hr(),
       # ---- Encoding section ----
       div(style = "background:#fffaf5; padding:15px; border-left:5px solid #F5A623; margin-bottom:16px;",
           h4("Encoding", style = "color:#F5A623; margin-top:0;"),
           h5("Tuning curves"),
+          note_panel("note_tuning", tagList(
+            tags$p("Each neuron has a Gaussian orientation tuning curve centered on its preferred orientation. "),
+            tags$p("The Naka-Rushton function maps stimulus contrast to peak neural response (height of tuning curve):"),
+            tags$p(HTML("R(c) = R<sub>max</sub> &times; c<sup>n</sup> / (c<sup>n</sup> + C<sub>50</sub><sup>n</sup>)")),
+            tags$p(HTML("where R<sub>max</sub> = 115, C<sub>50</sub> = 19.3, n = 2.9 (Citation).")),
+            tags$p("Baseline activity adds a constant offset to all neurons' responses."),
+            tags$p("Gain variability captures trial-by-trial fluctuations in a multiplicative gain factor that is shared across the neuronal population (not shown in the graph).")
+          )),
           fluidRow(
             column(6, plotOutput("g_nr")),
             column(6, plotOutput("g_tuning"))
           ),
           hr(),
           h5("Trial-by-trial spike distributions"),
+          note_panel("note_3d", tagList(
+            tags$p("Sample text: Each point represents one trial. The three axes show spike counts from three neurons with preferred orientations near the stimulus orientations. Cross = S1, circle = S2.")
+          )),
           plotlyOutput("p_3d")
       ),
       # ---- Decoding / Read-out section ----
       div(style = "background:#f5fffe; padding:15px; border-left:5px solid #17A589; margin-bottom:16px;",
           h4("Decoding / Read-out", style = "color:#17A589; margin-top:0;"),
           h5("Total spike count"),
+          note_panel("note_density", tagList(
+            tags$p("Sample text: The total spike count across the population is summed for each trial. The distribution across trials reflects both signal-related and noise-related variability. A detection threshold (hyperplane) separates 'seen' from 'not seen' responses.")
+          )),
           plotOutput("g_density"),
           uiOutput("text_density"),
           hr(),
           h5("Discrimination boundary"),
+          note_panel("note_boundary", tagList(
+            tags$p("Sample text: A logistic regression classifier is fit to the 3-neuron spike counts to find the hyperplane that best separates S1 from S2 responses. The mesh surface shows the decision boundary where P(S2) = 0.5.")
+          )),
           plotlyOutput("p_boundary"),
           uiOutput("text_boundary")
       )
@@ -340,9 +379,7 @@ server <- function(input, output, session) {
     ) %>% mutate(Condition = factor(Condition,
                                     levels = c("Condition A", "Condition B")))
     y_max <- max(df_all$FiringRate) * 1.05
-    
     strip_colors <- c("Condition A" = "#E41A1C", "Condition B" = "#377EB8")
-    
     g <- ggplot(df_all, aes(x = Orientation, y = FiringRate, color = Color, group = Neuron)) +
       geom_line() +
       scale_color_identity() +
@@ -353,11 +390,9 @@ server <- function(input, output, session) {
       labs(x = "Orientation (°)", y = "Spikes") +
       theme_classic(base_size = 20) +
       theme(strip.text = element_text(size = 13, face = "bold"))
-    
     gb <- ggplot_build(g)
     gt <- ggplot_gtable(gb)
     strip_idx <- which(grepl("strip", gt$layout$name))
-    # sort by t (top position) so index 1 = top panel (Condition A)
     strip_idx <- strip_idx[order(gt$layout$t[strip_idx])]
     fills <- strip_colors[levels(df_all$Condition)]
     for (i in seq_along(strip_idx)) {
