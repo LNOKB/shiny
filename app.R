@@ -93,7 +93,7 @@ ui <- fluidPage(
             column(6, plotOutput("g_tuning"))
           ),
           hr(),
-          h5("3D scatter"),
+          h5("Trial-by-trial spike distributions"),
           plotlyOutput("p_3d")
       ),
       # ---- Decoding / Read-out section ----
@@ -103,7 +103,7 @@ ui <- fluidPage(
           plotOutput("g_density"),
           uiOutput("text_density"),
           hr(),
-          h5("Decision boundary"),
+          h5("Discrimination boundary"),
           plotlyOutput("p_boundary"),
           uiOutput("text_boundary")
       )
