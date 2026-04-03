@@ -49,21 +49,34 @@ all_sliders <- c("contrast_A", "contrast_B", "sigma_g_A", "sigma_g_B",
 # Key assumption definitions per preset
 key_assumptions <- list(
   manual     = NULL,
-  samaha     = "Lower α can be interpreted as increased feature-independent baseline activity(citation)",
-  blindsight = "Unstable → increased gain variability",
-  subjective = "Inattention induces high Fano Factor (greater spike variability)."
+  samaha     = tagList(
+    "Lower α indicates a higher excitability (feature-independent, baseline-like signal addition)",
+    tags$sup(tags$a(href = "#ref1", "1")), ", ",
+    tags$sup(tags$a(href = "#ref2", "2"))
+  ),
+  blindsight = tagList(
+    "In V1-lesioned conditions, enhanced trial-to-trial shared fluctuations can be parsimoniously captured as increased shared gain variability.",
+    tags$sup(tags$a(href = "#ref3", "3"))
+  ),
+  subjective = tagList(
+    "Inattention is associated with higher spike-count variability (higher Fano factor) compared with the attended condition.",
+    tags$sup(tags$a(href = "#ref4", "4")), ", ",
+    tags$sup(tags$a(href = "#ref5", "5")), ", ",
+    tags$sup(tags$a(href = "#ref6", "6")), ", ",
+    tags$sup(tags$a(href = "#ref7", "7"))
+  )
 )
 
 # Tooltip text per slider per preset (NULL = no tooltip)
 slider_tooltips <- list(
   samaha = list(
-    spont_A = "Lower α can be interpreted as increased feature-independent baseline activity(citation)."
+    spont_A = "Under lower α (Condition A), baseline activity increases regardless of stimulus orientation — this is the key manipulation."
   ),
   blindsight = list(
-    sigma_g_A = "assuming increased gain variability"
+    sigma_g_A = "Under inattention (Condition A), trial-by-trial gain fluctuations are larger, producing correlated variability across the population."
   ),
   subjective = list(
-    fano_A = "Fano Factor gets higher under inattention (citation)."
+    fano_A = "Under high Fano Factor (Condition A), spike count variance relative to the mean is increased, broadening the population response distribution."
   ),
   manual = list()
 )
@@ -103,7 +116,7 @@ ui <- fluidPage(
       line-height: 1.6;
       border-radius: 3px;
     }
-    .tooltip-inner { max-width: 3000px; text-align: left; }
+    .tooltip-inner { max-width: 400px; text-align: left; }
   ")),
   tags$script(HTML("
     Shiny.addCustomMessageHandler('updateTooltip', function(msg) {
@@ -148,21 +161,27 @@ ui <- fluidPage(
       div(style = "background:#fffaf5; padding:15px; border-left:5px solid #F5A623; margin-bottom:16px;",
           h4("Encoding", style = "color:#F5A623; margin-top:0;"),
           uiOutput("key_assumption_box"),   # Key assumption box
-          h5("Tuning curves"),
+          h4("Tuning curves"),
           note_panel("note_tuning", tagList(
             tags$p("Each neuron has a Gaussian orientation tuning curve centered on its preferred orientation."),
             tags$p("The Naka-Rushton function maps stimulus contrast to peak neural response (height of tuning curve):"),
             tags$p(HTML("R(c) = R<sub>max</sub> &times; c<sup>n</sup> / (c<sup>n</sup> + C<sub>50</sub><sup>n</sup>)")),
             tags$p(HTML("where R<sub>max</sub> = 115, C<sub>50</sub> = 19.3, n = 2.9 (Citation).")),
             tags$p("Baseline activity adds a constant offset to all neurons' responses."),
-            tags$p("Gain variability captures trial-by-trial fluctuations in a multiplicative gain factor that is shared across the neuronal population (not shown in the graph).")
+            tags$hr(),
+            tags$p(tags$strong("Gain variability model:")),
+            tags$p("On each trial, a single gain factor g is sampled from a Gamma distribution and applied multiplicatively to the mean firing rates of all 180 neurons:"),
+            tags$p(HTML("<code>g ~ Gamma(shape = 1/σ_g², scale = σ_g²)</code>  →  mean = 1, variance = σ_g²")),
+            tags$p("Spike counts are then drawn from a Negative Binomial distribution:"),
+            tags$p(HTML("<code>r_i ~ NegBinom(mu = g · μ_i,  size = g · μ_i / (Fano − 1))</code>")),
+            tags$p(HTML("where μ_i is the tuning curve value of neuron i. When Fano = 1, this reduces to a Poisson process (size → ∞)."))
           )),
           fluidRow(
             column(6, plotOutput("g_nr")),
             column(6, plotOutput("g_tuning"))
           ),
           hr(),
-          h5("Trial-by-trial spike distributions"),
+          h4("Trial-by-trial spike distributions"),
           note_panel("note_3d", tagList(
             tags$p("Three neurons tuned to different orientations (90, 95, and 100 degs) are shown for illustration."),
             tags$p("Each point represents one trial.")
@@ -172,7 +191,7 @@ ui <- fluidPage(
       # ---- Decoding / Read-out section ----
       div(style = "background:#f5fffe; padding:15px; border-left:5px solid #17A589; margin-bottom:16px;",
           h4("Decoding / Read-out", style = "color:#17A589; margin-top:0;"),
-          h5("Total spike count"),
+          h4("Total spike count"),
           note_panel("note_density", tagList(
             tags$p("The total spike count across the population is summed for each trial."),
             tags$p("Visual awareness is represented by the total spike count across the population, with the hyperplane (not shown in graph) indicating the boundary between low and high visibility ratings.")
@@ -180,7 +199,7 @@ ui <- fluidPage(
           plotOutput("g_density"),
           uiOutput("text_density"),
           hr(),
-          h5("Discrimination boundary"),
+          h4("Discrimination boundary"),
           note_panel("note_boundary", tagList(
             tags$p("A logistic regression classifier is fit to the 3-neuron spike counts to find the hyperplane that best separates S1 from S2 responses."),
             tags$p("The red / blue surface shows the decision boundary where P(S2) = 0.5 for condition A / B, independently."),
@@ -189,6 +208,47 @@ ui <- fluidPage(
           )),
           plotlyOutput("p_boundary"),
           uiOutput("text_boundary")
+      ),
+      # ---- References ----
+      hr(),
+      tags$div(
+        style = "font-size:11px; color:#999; line-height:2.0; margin-top:8px; margin-bottom:20px;",
+        tags$strong("References", style = "font-size:12px; color:#777; display:block; margin-bottom:4px;"),
+        tags$p(id = "ref1",
+               tags$sup("1"), " ",
+               "Goris RL, Movshon JA, Simoncelli EP. Partitioning neuronal variability. ",
+               tags$em("Nat Neurosci."), " 2014;17(6):858–865. doi:10.1038/nn.3711"
+        ),
+        tags$p(id = "ref2",
+               tags$sup("2"), " ",
+               "Lin IC, Okun M, Carandini M, Harris KD. The Nature of Shared Cortical Variability. ",
+               tags$em("Neuron."), " 2015;87(3):644–656. doi:10.1016/j.neuron.2015.06.035"
+        ),
+        tags$p(id = "ref3",
+               tags$sup("3"), " ",
+               "Shapcott K, Schmiedt J, Saunders R, et al. Correlated activity of cortical neurons survives extensive removal of feedforward sensory input. ",
+               tags$em("Sci Rep."), " 2016;6:34886. doi:10.1038/srep34886"
+        ),
+        tags$p(id = "ref4",
+               tags$sup("4"), " ",
+               "Cohen MR, Maunsell JH. Attention improves performance primarily by reducing interneuronal correlations. ",
+               tags$em("Nat Neurosci."), " 2009;12(12):1594–1600. doi:10.1038/nn.2439"
+        ),
+        tags$p(id = "ref5",
+               tags$sup("5"), " ",
+               "Mitchell JF, Sundberg KA, Reynolds JH. Differential Attention-Dependent Response Modulation across Cell Classes in Macaque Visual Area V4. ",
+               tags$em("Neuron."), " 2007;55(1):131–141."
+        ),
+        tags$p(id = "ref6",
+               tags$sup("6"), " ",
+               "Mitchell JF, Sundberg KA, Reynolds JH. Spatial Attention Decorrelates Intrinsic Activity Fluctuations in Macaque Area V4. ",
+               tags$em("Neuron."), " 2009;63(6):879–888."
+        ),
+        tags$p(id = "ref7",
+               tags$sup("7"), " ",
+               "Ghosh S, Maunsell JHR. Single trial neuronal activity dynamics of attentional intensity in monkey visual area V4. ",
+               tags$em("Nat Commun."), " 2021;12:2003. doi:10.1038/s41467-021-22281-2"
+        )
       )
     )
   )
@@ -538,29 +598,55 @@ server <- function(input, output, session) {
   subtitle_texts <- list(
     manual     = list(density = NULL, boundary = NULL),
     samaha     = list(
-      density  = "Explanation of Samaha effect; in condition A (= under lower α), increased baseline activity shifts the population response toward greater total spiking, causing higher visibility rating.",
-      boundary = "Explanation of Samaha effect; in condition A (= under lower α), increased baseline activity shifts the population response along the direction parallel to the discrimination hyperplane, leaving orientation discrimination sensitivity unchanged."
+      density  = list(
+        title = "Samaha effect",
+        body  = "In condition A (= under lower α), increased baseline activity shifts the population response toward greater total spiking, causing higher visibility rating."
+      ),
+      boundary = list(
+        title = "Samaha effect",
+        body  = "In condition A (= under lower α), increased baseline activity shifts the population response along the direction parallel to the discrimination hyperplane, leaving orientation discrimination sensitivity unchanged."
+      )
     ),
     subjective = list(
-      density  = "Explanation of Subjective inflation; in condition A (= under inattention), greater spike variability increases the chance of the population response exceeding the detection hyperplane.",
-      boundary = "Explanation of Subjective inflation; in condition A (= under inattention), greater spike variability reduces manifold separability."
+      density  = list(
+        title = "Subjective inflation",
+        body  = "In condition A (= under inattention), greater spike variability increases the chance of the population response exceeding the detection hyperplane."
+      ),
+      boundary = list(
+        title = "Subjective inflation",
+        body  = "In condition A (= under inattention), greater spike variability reduces manifold separability."
+      )
     ),
     blindsight = list(
-      density  = "Explanation of blindsight; in condition A (= under low stability), increased gain variability expands the manifold along the total spike axis, impairing yes/no detection sensitivity.",
-      boundary = "Explanation of blindsight; in condition A (= under low stability), increased gain variability produces response correlations parallel to the orientation discrimination hyperplane, leaving discrimination sensitivity unaffected."
+      density  = list(
+        title = "Blindsight",
+        body  = "In condition A (= under low stability), increased gain variability expands the manifold along the total spike axis, impairing yes/no detection sensitivity."
+      ),
+      boundary = list(
+        title = "Blindsight",
+        body  = "In condition A (= under low stability), increased gain variability produces response correlations parallel to the orientation discrimination hyperplane, leaving discrimination sensitivity unaffected."
+      )
     )
   )
   
+  make_subtitle_card <- function(item) {
+    if (is.null(item)) return(NULL)
+    tags$div(
+      style = "border-left: 4px solid #17A589; background: #f5fffe; border-radius: 0 6px 6px 0; box-shadow: 0 1px 4px rgba(0,0,0,0.08); padding: 12px 16px; margin-top: 12px;",
+      tags$div(
+        style = "font-size:17px; font-weight:bold; color:#17A589; margin-bottom:6px;",
+        tags$span("💡 "), item$title
+      ),
+      tags$span(item$body, style = "font-size:15px; color:#444; line-height:1.7;")
+    )
+  }
+  
   output$text_density <- renderUI({
-    txt <- subtitle_texts[[input$preset]]$density
-    if (is.null(txt)) return(NULL)
-    tags$p(txt, style = "color:#555; font-style:italic; margin-top:6px; font-size:18px;")
+    make_subtitle_card(subtitle_texts[[input$preset]]$density)
   })
   
   output$text_boundary <- renderUI({
-    txt <- subtitle_texts[[input$preset]]$boundary
-    if (is.null(txt)) return(NULL)
-    tags$p(txt, style = "color:#555; font-style:italic; margin-top:6px; font-size:18px;")
+    make_subtitle_card(subtitle_texts[[input$preset]]$boundary)
   })
 }
 
