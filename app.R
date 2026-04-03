@@ -102,9 +102,6 @@ ui <- fluidPage(
     mainPanel(
       h4("Stimuli"),
       plotOutput("g_stimuli", height = "180px"),
-      note_panel("note_stimuli", tagList(
-        tags$p("Sample text: Each Gabor patch represents one stimulus orientation. Contrast is set independently for Condition A and B via the sliders.")
-      )),
       hr(),
       # ---- Encoding section ----
       div(style = "background:#fffaf5; padding:15px; border-left:5px solid #F5A623; margin-bottom:16px;",
@@ -125,7 +122,8 @@ ui <- fluidPage(
           hr(),
           h5("Trial-by-trial spike distributions"),
           note_panel("note_3d", tagList(
-            tags$p("Sample text: Each point represents one trial. The three axes show spike counts from three neurons with preferred orientations near the stimulus orientations. Cross = S1, circle = S2.")
+            tags$p("Three neurons tuned to different orientations (90, 95, and 100 degs) are shown for illustration."),
+            tags$p("Each point represents one trial.")
           )),
           plotlyOutput("p_3d")
       ),
@@ -134,14 +132,18 @@ ui <- fluidPage(
           h4("Decoding / Read-out", style = "color:#17A589; margin-top:0;"),
           h5("Total spike count"),
           note_panel("note_density", tagList(
-            tags$p("Sample text: The total spike count across the population is summed for each trial. The distribution across trials reflects both signal-related and noise-related variability. A detection threshold (hyperplane) separates 'seen' from 'not seen' responses.")
+            tags$p("The total spike count across the population is summed for each trial."),
+            tags$p("Visual awareness is represented by the total spike count across the population, with the hyperplane (not shown in graph) indicating the boundary between low and high visibility ratings.")
           )),
           plotOutput("g_density"),
           uiOutput("text_density"),
           hr(),
           h5("Discrimination boundary"),
           note_panel("note_boundary", tagList(
-            tags$p("Sample text: A logistic regression classifier is fit to the 3-neuron spike counts to find the hyperplane that best separates S1 from S2 responses. The mesh surface shows the decision boundary where P(S2) = 0.5.")
+            tags$p("A logistic regression classifier is fit to the 3-neuron spike counts to find the hyperplane that best separates S1 from S2 responses."),
+            tags$p("The red / blue surface shows the decision boundary where P(S2) = 0.5 for condition A / B, independently."),
+            tags$p("Orientation sensitivity is given by the discriminability between spike distributions,"),
+            tags$p(" with decision uncertainty corresponding to the distance of each spike point from the discrimination boundary.")
           )),
           plotlyOutput("p_boundary"),
           uiOutput("text_boundary")
@@ -233,42 +235,7 @@ server <- function(input, output, session) {
     })
   })
   
-  # ---- lda_result ----
-  lda_result <- eventReactive(input$run, {
-    req(sim_result())
-    withProgress(message = "Computing LDA...", {
-      s1 <- input$stim1; s2 <- input$stim2
-      run_lda <- function(cond_label) {
-        df_lda <- sim_result() %>%
-          filter(Condition == cond_label, Neuron %in% c(95, 90, 100)) %>%
-          pivot_wider(id_cols = c(Stimulus, Trial),
-                      names_from = Neuron, values_from = Spikes) %>%
-          rename(neuron1 = `95`, neuron2 = `90`, neuron3 = `100`) %>%
-          mutate(class = factor(ifelse(Stimulus == s1, 0, 1)))
-        data0 <- as.matrix(df_lda[df_lda$class == 0, c("neuron1","neuron2","neuron3")])
-        data1 <- as.matrix(df_lda[df_lda$class == 1, c("neuron1","neuron2","neuron3")])
-        n     <- nrow(data0)
-        df_vec    <- colMeans(data1) - colMeans(data0)
-        lambda_reg <- 0.01
-        Sigma_w   <- (cov(data0) + cov(data1)) / 2 + lambda_reg * diag(3)
-        w         <- solve(Sigma_w) %*% df_vec
-        w_scaled  <- as.numeric(w)
-        mean0     <- colMeans(data0); mean1 <- colMeans(data1)
-        lfi       <- t(df_vec) %*% solve(Sigma_w) %*% df_vec
-        dp        <- sqrt(lfi)
-        proj0     <- as.numeric(data0 %*% w)
-        proj1     <- as.numeric(data1 %*% w)
-        mu_proj0  <- mean(proj0); mu_proj1 <- mean(proj1)
-        sd_proj   <- sqrt((var(proj0) + var(proj1)) / 2)
-        dp_1d     <- (mu_proj1 - mu_proj0) / sd_proj
-        list(data0=data0, data1=data1, df_vec=df_vec, w_scaled=w_scaled,
-             mean0=mean0, mean1=mean1, dp=dp,
-             proj0=proj0, proj1=proj1, dp_1d=dp_1d,
-             mu_proj0=mu_proj0, mu_proj1=mu_proj1, n=n)
-      }
-      list(A = run_lda("A"), B = run_lda("B"))
-    })
-  })
+  
   
   # ---- Stimuli: Gabor patches ----
   output$g_stimuli <- renderPlot({
@@ -510,16 +477,16 @@ server <- function(input, output, session) {
   subtitle_texts <- list(
     manual     = list(density = NULL, boundary = NULL),
     samaha     = list(
-      density  = "In condition A (= under lower α), increased baseline activity shifts the population response toward greater total spiking, causing higher visibility rating.",
-      boundary = "In condition A (= under lower α), increased baseline activity shifts the population response along the direction parallel to the discrimination hyperplane, leaving orientation discrimination sensitivity unchanged."
+      density  = "Explanation of Samaha effect; in condition A (= under lower α), increased baseline activity shifts the population response toward greater total spiking, causing higher visibility rating.",
+      boundary = "Explanation of Samaha effect; in condition A (= under lower α), increased baseline activity shifts the population response along the direction parallel to the discrimination hyperplane, leaving orientation discrimination sensitivity unchanged."
     ),
     subjective = list(
-      density  = "In condition A (= under inattention), greater spike variability increases the chance of the population response exceeding the detection hyperplane.",
-      boundary = "In condition A (= under inattention), greater spike variability reduces manifold separability."
+      density  = "Explanation of Subjective inflation; in condition A (= under inattention), greater spike variability increases the chance of the population response exceeding the detection hyperplane.",
+      boundary = "Explanation of Subjective inflation; in condition A (= under inattention), greater spike variability reduces manifold separability."
     ),
     blindsight = list(
-      density  = "In condition A (= under low stability), increased gain variability expands the manifold along the total spike axis, impairing yes/no detection sensitivity.",
-      boundary = "In condition A (= under low stability), increased gain variability produces response correlations parallel to the orientation discrimination hyperplane, leaving discrimination sensitivity unaffected."
+      density  = "Explanation of blindsight; in condition A (= under low stability), increased gain variability expands the manifold along the total spike axis, impairing yes/no detection sensitivity.",
+      boundary = "Explanation of blindsight; in condition A (= under low stability), increased gain variability produces response correlations parallel to the orientation discrimination hyperplane, leaving discrimination sensitivity unaffected."
     )
   )
   
