@@ -192,18 +192,21 @@ ui <- fluidPage(
           uiOutput("key_assumption_box"),
           h4("Tuning curves"),
           note_panel("note_tuning", tagList(
-            tags$p("Each neuron has a Gaussian orientation tuning curve centered on its preferred orientation."),
-            tags$p("The Naka-Rushton function maps stimulus contrast to peak neural response (height of tuning curve):"),
+            tags$p("Each of the 180 model neurons has a circular Gaussian orientation tuning curve. The peak response amplitude is determined by the Naka-Rushton contrast-response function:"),
             tags$p(HTML("R(c) = R<sub>max</sub> &times; c<sup>n</sup> / (c<sup>n</sup> + C<sub>50</sub><sup>n</sup>)")),
-            tags$p(HTML("where R<sub>max</sub> = 115, C<sub>50</sub> = 19.3, n = 2.9 (Citation).")),
-            tags$p("Baseline activity adds a constant offset to all neurons' responses."),
+            tags$p(HTML("Parameters are set to R<sub>max</sub> = 115 spikes/s, C<sub>50</sub> = 19.3%, n = 2.9, based on physiological measurements in macaque V1 (Albrecht & Hamilton, 1982).")),
             tags$hr(),
-            tags$p(tags$strong("Gain variability model:")),
-            tags$p("On each trial, a single gain factor g is sampled from a Gamma distribution and applied multiplicatively to the tuning curve values (expected spike counts) of all 180 neurons:"),
-            tags$p(HTML("<code>g ~ Gamma(shape = 1/σ_g², scale = σ_g²)</code>  →  mean = 1, variance = σ_g²")),
-            tags$p("Spike counts are then drawn from a Negative Binomial distribution:"),
-            tags$p(HTML("<code>r_i ~ NegBinom(mu = g · μ_i,  size = g · μ_i / (Fano − 1))</code>")),
-            tags$p(HTML("where μ_i is the tuning curve value of neuron i. When Fano = 1, this reduces to a Poisson process (size → ∞)."))
+            tags$p(tags$strong("Baseline activity",  ":")),
+            tags$p("Baseline activity adds an orientation-independent offset to all neurons, capturing tonic firing unrelated to the stimulus."),
+            tags$hr(),
+            tags$p(tags$strong("Gain fluctiations", tags$sup(tags$a(href="#ref1","1")), tags$sup(tags$a(href="#ref2",", 2")), ":")),
+            tags$p("On each trial, a single scalar gain g is sampled from a Gamma distribution and applied multiplicatively to the tuning curve values of all 180 neurons simultaneously. Because the same g scales every neuron, it introduces correlated trial-by-trial fluctuations across the population."),
+            tags$p(HTML("<code>g ~ Gamma(shape = 1/σ_g², scale = σ_g²)</code>  →  E[g] = 1, Var[g] = σ_g²")),
+            tags$hr(),
+            tags$p(tags$strong("Fano factor",  ":")),
+            tags$p("Spike counts are drawn from a Negative Binomial distribution, which generalises the Poisson by allowing the variance to exceed the mean (overdispersion):"),
+            tags$p(HTML("<code>r_i ~ NegBinom(mu = g·μ_i,  size = g·μ_i / (Fano−1))</code>")),
+            tags$p(HTML("Setting size per-neuron as g·μ_i/(Fano−1) ensures Var/Mean ≈ Fano across neurons. When Fano = 1, size → ∞ and the distribution reduces to Poisson."))
           )),
           fluidRow(
             column(6, plotOutput("g_nr")),
@@ -212,8 +215,9 @@ ui <- fluidPage(
           hr(),
           h4("Trial-by-trial spike distributions"),
           note_panel("note_3d", tagList(
-            tags$p("Three neurons tuned to different orientations (90, 95, and 100 degs) are shown for illustration."),
-            tags$p("Each point represents one trial.")
+            tags$p("The response space is high-dimensional (180 neurons), but here we visualise three neurons with preferred orientations near the stimulus values (Neuron 90°, 95°, 100°) to illustrate the geometry of population responses."),
+            tags$p("Each point is one simulated trial. Cross markers (＋) = Stimulus 1; circles (●) = Stimulus 2. The two stimuli form separate clusters in this 3-neuron subspace — their separability reflects the population's ability to discriminate the two orientations."),
+            tags$p("Gain variability stretches the clouds along the diagonal (sum) direction, because all neurons are scaled by the same g on each trial. This correlated noise structure is distinct from independent Poisson noise, and its consequences for detection and discrimination are shown in the Decoding section.")
           )),
           plotlyOutput("p_3d")
       ),
@@ -222,18 +226,18 @@ ui <- fluidPage(
           h4("Decoding / Read-out", style = "color:#17A589; margin-top:0;"),
           h4("Total spike count"),
           note_panel("note_density", tagList(
-            tags$p("The total spike count across the population is summed for each trial."),
-            tags$p("Visual awareness is represented by the total spike count across the population, with the hyperplane (not shown in graph) indicating the boundary between low and high visibility ratings.")
+            tags$p("The total (summed) spike count across all 180 neurons is computed for each trial. This scalar summary projects the 180-dimensional population response onto a single axis — the detection read-out axis."),
+            tags$p("According to the population coding framework for visual awareness, the likelihood of a stimulus being consciously perceived depends on whether the total population response crosses an internal threshold (the detection hyperplane). A rightward shift of the distribution increases the probability of detection, regardless of whether the stimulus features are accurately encoded."),
+            tags$p(HTML("Baseline activity and Fano Factor both inflate the total spike count and its variance, respectively, and can therefore modulate detection sensitivity independently of orientation discrimination. Gain variability, in contrast, expands the distribution along the total-spike axis, broadening it without systematically shifting its mean. See Goris et al. (2014)", tags$sup(tags$a(href="#ref1","1")), " and Lin et al. (2015)", tags$sup(tags$a(href="#ref2","2")), " for the relationship between shared gain fluctuations and population response variability."))
           )),
           plotOutput("g_density"),
           uiOutput("text_density"),
           hr(),
           h4("Discrimination boundary"),
           note_panel("note_boundary", tagList(
-            tags$p("A logistic regression classifier is fit to the 3-neuron spike counts to find the hyperplane that best separates S1 from S2 responses."),
-            tags$p("The red / blue surface shows the decision boundary where P(S2) = 0.5 for condition A / B, independently."),
-            tags$p("Orientation sensitivity is given by the discriminability between spike distributions,"),
-            tags$p("with decision uncertainty corresponding to the distance of each spike point from the discrimination boundary.")
+            tags$p("A logistic regression classifier is trained on the spike counts of three neurons (preferred orientations: 90°, 95°, 100°) to find the linear hyperplane that best separates responses to Stimulus 1 from responses to Stimulus 2. The mesh surface shows where the classifier's decision probability equals 0.5 — i.e., the discrimination boundary."),
+            tags$p("Orientation discrimination sensitivity is determined by the separability of the two response clouds in this 3-neuron subspace. The orientation of the boundary plane and the compactness of the clouds jointly determine how well S1 and S2 can be told apart."),
+            tags$p("Gain variability stretches both clouds along the diagonal axis (total spike direction) without rotating the discrimination boundary, because the correlated noise lies parallel to the sum direction and orthogonal to the orientation-difference direction. This geometry explains why gain variability can impair detection (total spike read-out) while leaving orientation discrimination largely intact — a key prediction of the population noise framework for blindsight and related dissociations.")
           )),
           plotlyOutput("p_boundary"),
           uiOutput("text_boundary")
@@ -243,6 +247,9 @@ ui <- fluidPage(
       tags$div(
         style = "font-size:11px; color:#999; line-height:2.0; margin-top:8px; margin-bottom:20px;",
         tags$strong("References", style = "font-size:12px; color:#777; display:block; margin-bottom:4px;"),
+        tags$p(id = "ref8", tags$sup("†"), " ",
+               "Albrecht DG, Hamilton DB. Striate cortex of monkey and cat: contrast response function. ",
+               tags$em("J Neurophysiol."), " 1982;48(1):217–237."),
         tags$p(id = "ref1", tags$sup("1"), " ",
                "Goris RL, Movshon JA, Simoncelli EP. Partitioning neuronal variability. ",
                tags$em("Nat Neurosci."), " 2014;17(6):858–865. doi:10.1038/nn.3711"),
@@ -445,7 +452,7 @@ server <- function(input, output, session) {
       geom_line(linewidth = 0.7) +
       geom_point(data = pts, aes(x = x, y = y, color = col), size = 3) +
       scale_color_identity() +
-      annotate("text", x = 50, y = 130, label = "Naka-Rushton function",
+      annotate("text", x = 50, y = 130, label = "Naka-Rushton",
                vjust = 1, hjust = 0.5, size = 7) +
       scale_x_continuous(limits = c(0, 100), breaks = c(0, 25, 50, 75, 100)) +
       coord_cartesian(ylim = c(0, 130)) +
