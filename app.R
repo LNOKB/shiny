@@ -54,25 +54,6 @@ cond_labels <- list(
   subjective = list(A = "Low attention", B = "High attention")
 )
 
-# Key assumption definitions per preset
-key_assumptions <- list(
-  manual     = NULL,
-  samaha     = tagList(
-    "Spontaneous alpha-band power (α) reflects moment-to-moment fluctuations in cortical excitability. Lower α indicates higher baseline excitability, biasing population responses toward the detection threshold.",
-    tags$sup(tags$a(href = "#ref11", "11")), ", ",
-    tags$sup(tags$a(href = "#ref12", "12"))
-  ),
-  blindsight = tagList(
-    "Residual visual responses after V1 lesion are associated with enhanced trial-to-trial shared gain fluctuations, which can be captured as increased shared gain variability.",
-    tags$sup(tags$a(href = "#ref4", "4")), ", ",
-    tags$sup(tags$a(href = "#ref5", "5"))
-  ),
-  subjective = tagList(
-    "Inattention is associated with higher spike-count variability (higher Fano factor), increasing the probability that population responses exceed the detection threshold.",
-    tags$sup(tags$a(href = "#ref6", "6")), ", ",
-    tags$sup(tags$a(href = "#ref7", "7"))
-  )
-)
 
 # Phenomenon intro per preset
 phenomenon_intro_content <- list(
@@ -86,13 +67,13 @@ phenomenon_intro_content <- list(
   blindsight = list(
     title = "Blindsight",
     body  = "Lesions in the primary visual cortex impair awareness (yes/no detection sensitivity) while leaving orientation discrimination sensitivity largely intact.",
-    refs  = tagList(tags$sup(tags$a(href="#ref3","3")), ", ", tags$sup(tags$a(href="#ref4","4")), ", ", tags$sup(tags$a(href="#ref5","5"))),
+    refs  = tagList(tags$sup(tags$a(href="#ref4","4")), ", ", tags$sup(tags$a(href="#ref5","5"))),
     img   = "blindsight.png"
   ),
   subjective = list(
     title = "Subjective inflation",
     body  = "Inattention leads to lower discrimination sensitivity but paradoxically increases subjective awareness.",
-    refs  = tagList(tags$sup(tags$a(href="#ref6","6")), ", ", tags$sup(tags$a(href="#ref7","7")), ", ", tags$sup(tags$a(href="#ref8","8")), ", ", tags$sup(tags$a(href="#ref9","9")), ", ", tags$sup(tags$a(href="#ref10","10")), ", ", tags$sup(tags$a(href="#ref11","11"))),
+    refs  = tagList(tags$sup(tags$a(href="#ref6","6")), ", ", tags$sup(tags$a(href="#ref7","7"))),
     img   = "subjective.png"
   )
 )
@@ -243,8 +224,9 @@ ui <- fluidPage(
             tags$p(tags$strong("Fano Factor", ":")),
             tags$p("Spike counts are drawn from a Negative Binomial distribution:"),
             tags$p(HTML("$$r_i \\sim \\text{NegBinom}\\!\\left(\\mu = g\\,\\mu_i,\\; \\text{size} = \\frac{g\\,\\mu_i}{F - 1}\\right)$$")),
-            tags$p(HTML("where \\(\\mu_i\\) is the tuning curve value of neuron \\(i\\) and \\(F\\) is the Fano Factor. "), tags$sup(tags$a(href="#ref1","1"))),
+            tags$p(HTML("where \\(\\mu_i\\) is the tuning curve value of neuron \\(i\\) and \\(F\\) is the Fano Factor. "), tags$sup(tags$a(href="#ref2","2"))),
             tags$p(HTML("Negative Binomial distribution generalises the Poisson by allowing the variance to exceed the mean (overdispersion). When \\(F = 1\\), the distribution reduces to Poisson.")),
+            tags$hr(),
             tags$p("Both gain fluctuations and Fano Factor increase the variance of individual neurons' spike counts. However, they differ in their effect on the covariance structure of population responses. Gain fluctuations introduce shared variability across neurons: when Neuron 90 fires more, Neuron 100 tends to fire more as well. Fano Factor, in contrast, inflates each neuron's variance independently, leaving the covariance structure unchanged.")
           )),
           fluidRow(
@@ -383,13 +365,6 @@ server <- function(input, output, session) {
       id = "sigma_g_A", title = if (!is.null(tips$sigma_g_A)) tips$sigma_g_A else ""))
     session$sendCustomMessage("updateTooltip", list(
       id = "fano_A", title = if (!is.null(tips$fano_A)) tips$fano_A else ""))
-  })
-  
-  # ---- Key assumption box ----
-  output$key_assumption_box <- renderUI({
-    txt <- key_assumptions[[input$preset]]
-    if (is.null(txt)) return(NULL)
-    tags$div(class = "key-assumption-box", txt)
   })
   
   # ---- sim_result ----
@@ -705,21 +680,21 @@ server <- function(input, output, session) {
     manual     = list(density = NULL, boundary = NULL),
     samaha     = list(
       density  = list(title = "Samaha effect",
-                      body  = "In condition A (= under lower α), increased baseline activity shifts the population response toward greater total spiking, causing higher visibility rating."),
+                      body  = "Under lower α, increased baseline activity shifts the population response toward greater total spiking, causing higher visibility rating."),
       boundary = list(title = "Samaha effect",
-                      body  = "In condition A (= under lower α), increased baseline activity shifts the population response along the direction parallel to the discrimination hyperplane, leaving orientation discrimination sensitivity unchanged.")
+                      body  = "Under lower α, increased baseline activity shifts the population response along the direction parallel to the discrimination hyperplane, leaving orientation discrimination sensitivity unchanged.")
     ),
     subjective = list(
       density  = list(title = "Subjective inflation",
-                      body  = "In condition A (= under low attention), greater spike variability increases the chance of the population response exceeding the detection hyperplane."),
+                      body  = "Under low attention, greater spike variability increases the chance of the population response exceeding the detection hyperplane."),
       boundary = list(title = "Subjective inflation",
-                      body  = "In condition A (= under low attention), greater spike variability reduces manifold separability.")
+                      body  = "Under low attention, greater spike variability reduces manifold separability.")
     ),
     blindsight = list(
       density  = list(title = "Blindsight",
-                      body  = "In condition A (= under high gain fluctuations), increased gain variability expands the manifold along the total spike axis, impairing yes/no detection sensitivity."),
+                      body  = "Under high gain fluctuations, increased gain variability expands the manifold along the total spike axis, impairing yes/no detection sensitivity."),
       boundary = list(title = "Blindsight",
-                      body  = "In condition A (= under high gain fluctuations), increased gain variability produces response correlations parallel to the orientation discrimination hyperplane, leaving discrimination sensitivity unaffected.")
+                      body  = "Under high gain fluctuations, increased gain variability produces response correlations parallel to the orientation discrimination hyperplane, leaving discrimination sensitivity unaffected.")
     )
   )
   
