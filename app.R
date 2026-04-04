@@ -110,6 +110,15 @@ note_panel <- function(id, content) {
 # ============================================================
 ui <- fluidPage(
   useShinyjs(),
+  # MathJax for rendering math formulas
+  tags$head(
+    tags$script(src = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"),
+    tags$script(HTML("
+      MathJax = {
+        tex: { inlineMath: [['\\\\(', '\\\\)']], displayMath: [['$$', '$$']] }
+      };
+    "))
+  ),
   tags$style(HTML("
     .slider-disabled { opacity: 0.35; pointer-events: none; }
     .panel-info > .panel-heading { background-color: #f7f7f7; border-color: #e0e0e0; color: #aaa; font-size:11px; padding: 4px 10px; }
@@ -142,6 +151,12 @@ ui <- fluidPage(
       if (el) {
         $(el).closest('.form-group').attr('title', msg.title)
              .tooltip('destroy').tooltip({placement: 'right'});
+      }
+    });
+    // Re-render MathJax when collapse panels are opened
+    $(document).on('shown.bs.collapse', function() {
+      if (window.MathJax && MathJax.typesetPromise) {
+        MathJax.typesetPromise();
       }
     });
   ")),
@@ -193,20 +208,18 @@ ui <- fluidPage(
           h4("Tuning curves"),
           note_panel("note_tuning", tagList(
             tags$p("Each of the 180 model neurons has a circular Gaussian orientation tuning curve. The peak response amplitude is determined by the Naka-Rushton contrast-response function:"),
-            tags$p(HTML("R(c) = R<sub>max</sub> &times; c<sup>n</sup> / (c<sup>n</sup> + C<sub>50</sub><sup>n</sup>)")),
-            tags$p(HTML("Parameters are set to R<sub>max</sub> = 115 spikes/s, C<sub>50</sub> = 19.3%, n = 2.9, based on physiological measurements in macaque V1 (Albrecht & Hamilton, 1982).")),
+            tags$p(HTML("$$R(c) = R_{\\max} \\cdot \\frac{c^n}{c^n + C_{50}^n}$$")),
+            tags$p(HTML("Parameters are set to \\(R_{\\max} = 115\\) spikes/s, \\(C_{50} = 19.3\\%\\), \\(n = 2.9\\), based on physiological measurements across monkey and cat V1 (Albrecht & Hamilton, 1982, Table 5).")),
             tags$hr(),
             tags$p(tags$strong("Baseline activity",  ":")),
             tags$p("Baseline activity adds an orientation-independent offset to all neurons, capturing tonic firing unrelated to the stimulus."),
-            tags$hr(),
-            tags$p(tags$strong("Gain fluctiations", tags$sup(tags$a(href="#ref1","1")), tags$sup(tags$a(href="#ref2",", 2")), ":")),
-            tags$p("On each trial, a single scalar gain g is sampled from a Gamma distribution and applied multiplicatively to the tuning curve values of all 180 neurons simultaneously. Because the same g scales every neuron, it introduces correlated trial-by-trial fluctuations across the population."),
-            tags$p(HTML("<code>g ~ Gamma(shape = 1/σ_g², scale = σ_g²)</code>  →  E[g] = 1, Var[g] = σ_g²")),
-            tags$hr(),
+            tags$p(tags$strong("Gain variability", ":")),
+            tags$p("On each trial, a single scalar gain \\(g\\) is sampled from a Gamma distribution and applied multiplicatively to the tuning curve values of all 180 neurons simultaneously. Because the same \\(g\\) scales every neuron, it introduces correlated trial-by-trial fluctuations across the population.", tags$sup(tags$a(href="#ref1","1")), tags$sup(tags$a(href="#ref2",", 2"))),
+            tags$p(HTML("$$g \\sim \\text{Gamma}\\!\\left(\\frac{1}{\\sigma_g^2},\\; \\sigma_g^2\\right), \\quad \\mathbb{E}[g] = 1, \\quad \\text{Var}[g] = \\sigma_g^2$$")),
             tags$p(tags$strong("Fano factor",  ":")),
             tags$p("Spike counts are drawn from a Negative Binomial distribution, which generalises the Poisson by allowing the variance to exceed the mean (overdispersion):"),
-            tags$p(HTML("<code>r_i ~ NegBinom(mu = g·μ_i,  size = g·μ_i / (Fano−1))</code>")),
-            tags$p(HTML("Setting size per-neuron as g·μ_i/(Fano−1) ensures Var/Mean ≈ Fano across neurons. When Fano = 1, size → ∞ and the distribution reduces to Poisson."))
+            tags$p(HTML("$$r_i \\sim \\text{NegBinom}\\!\\left(\\mu = g\\,\\mu_i,\\; \\text{size} = \\frac{g\\,\\mu_i}{F - 1}\\right)$$")),
+            tags$p(HTML("where \\(\\mu_i\\) is the tuning curve value of neuron \\(i\\) and \\(F\\) is the Fano Factor. Setting size per-neuron as \\(g\\mu_i/(F-1)\\) ensures \\(\\text{Var}/\\text{Mean} \\approx F\\) across neurons. When \\(F = 1\\), size \\(\\to \\infty\\) and the distribution reduces to Poisson."))
           )),
           fluidRow(
             column(6, plotOutput("g_nr")),
