@@ -58,20 +58,42 @@ cond_labels <- list(
 key_assumptions <- list(
   manual     = NULL,
   samaha     = tagList(
-    "Lower α indicates a higher excitability (feature-independent, baseline-like signal addition)",
-    tags$sup(tags$a(href = "#ref1", "1")), ", ",
-    tags$sup(tags$a(href = "#ref2", "2"))
+    "Spontaneous alpha-band power (α) reflects moment-to-moment fluctuations in cortical excitability. Lower α indicates higher baseline excitability, biasing population responses toward the detection threshold.",
+    tags$sup(tags$a(href = "#ref11", "11")), ", ",
+    tags$sup(tags$a(href = "#ref12", "12"))
   ),
   blindsight = tagList(
-    "In V1-lesioned conditions, enhanced trial-to-trial shared fluctuations can be parsimoniously captured as increased shared gain variability.",
-    tags$sup(tags$a(href = "#ref3", "3"))
+    "Residual visual responses after V1 lesion are associated with enhanced trial-to-trial shared gain fluctuations, which can be captured as increased shared gain variability.",
+    tags$sup(tags$a(href = "#ref4", "4")), ", ",
+    tags$sup(tags$a(href = "#ref5", "5"))
   ),
   subjective = tagList(
-    "Inattention is associated with higher spike-count variability (higher Fano factor) compared with the attended condition.",
-    tags$sup(tags$a(href = "#ref4", "4")), ", ",
-    tags$sup(tags$a(href = "#ref5", "5")), ", ",
+    "Inattention is associated with higher spike-count variability (higher Fano factor), increasing the probability that population responses exceed the detection threshold.",
     tags$sup(tags$a(href = "#ref6", "6")), ", ",
     tags$sup(tags$a(href = "#ref7", "7"))
+  )
+)
+
+# Phenomenon intro per preset
+phenomenon_intro_content <- list(
+  manual     = NULL,
+  samaha     = list(
+    title = "Samaha effect",
+    body  = "Low pre-stimulus α power, associated with increased baseline neural activity, predicts increased visibility while leaving orientation discrimination sensitivity unchanged.",
+    refs  = tagList(tags$sup(tags$a(href="#ref11","11")), ", ", tags$sup(tags$a(href="#ref12","12"))),
+    img   = "samaha.png"
+  ),
+  blindsight = list(
+    title = "Blindsight",
+    body  = "Lesions in the primary visual cortex impair awareness (yes/no detection sensitivity) while leaving orientation discrimination sensitivity largely intact.",
+    refs  = tagList(tags$sup(tags$a(href="#ref3","3")), ", ", tags$sup(tags$a(href="#ref4","4")), ", ", tags$sup(tags$a(href="#ref5","5"))),
+    img   = "blindsight.png"
+  ),
+  subjective = list(
+    title = "Subjective inflation",
+    body  = "Inattention leads to lower discrimination sensitivity but paradoxically increases subjective awareness.",
+    refs  = tagList(tags$sup(tags$a(href="#ref6","6")), ", ", tags$sup(tags$a(href="#ref7","7")), ", ", tags$sup(tags$a(href="#ref8","8")), ", ", tags$sup(tags$a(href="#ref9","9")), ", ", tags$sup(tags$a(href="#ref10","10")), ", ", tags$sup(tags$a(href="#ref11","11"))),
+    img   = "subjective.png"
   )
 )
 
@@ -198,6 +220,8 @@ ui <- fluidPage(
       actionButton("run", "Run simulation", class = "btn-primary")
     ),
     mainPanel(
+      # ---- Phenomenon introduction (preset-linked) ----
+      uiOutput("phenomenon_intro"),
       h4("Stimuli"),
       plotOutput("g_stimuli", height = "180px"),
       hr(),
@@ -209,14 +233,14 @@ ui <- fluidPage(
           note_panel("note_tuning", tagList(
             tags$p("Each of the 180 model neurons has a circular Gaussian orientation tuning curve. The peak response amplitude is determined by the Naka-Rushton contrast-response function:"),
             tags$p(HTML("$$R(c) = R_{\\max} \\cdot \\frac{c^n}{c^n + C_{50}^n}$$")),
-            tags$p(HTML("Parameters are set to \\(R_{\\max} = 115\\) spikes/s, \\(C_{50} = 19.3\\%\\), \\(n = 2.9\\), based on physiological measurements across monkey and cat V1 (Albrecht & Hamilton, 1982, Table 5).")),
+            tags$p(HTML("Parameters are set to \\(R_{\\max} = 115\\) spikes/s, \\(C_{50} = 19.3\\%\\), \\(n = 2.9\\), based on physiological measurements across monkey and cat V1."), tags$sup(tags$a(href="#ref1","1"))),
             tags$hr(),
-            tags$p(tags$strong("Baseline activity",  ":")),
+            tags$p(tags$strong("Baseline activity", ":")),
             tags$p("Baseline activity adds an orientation-independent offset to all neurons, capturing tonic firing unrelated to the stimulus."),
             tags$p(tags$strong("Gain fluctuations", ":")),
-            tags$p("On each trial, a single scalar gain \\(g\\) is sampled from a Gamma distribution and applied multiplicatively to the tuning curve values of all 180 neurons simultaneously. Because the same \\(g\\) scales every neuron, it introduces correlated trial-by-trial fluctuations across the population.", tags$sup(tags$a(href="#ref1","1")), tags$sup(tags$a(href="#ref2",", 2"))),
+            tags$p("On each trial, a single scalar gain \\(g\\) is sampled from a Gamma distribution and applied multiplicatively to the tuning curve values of all 180 neurons simultaneously. Because the same \\(g\\) scales every neuron, it introduces correlated trial-by-trial fluctuations across the population.", tags$sup(tags$a(href="#ref2","2")), tags$sup(tags$a(href="#ref3",", 3"))),
             tags$p(HTML("$$g \\sim \\text{Gamma}\\!\\left(\\frac{1}{\\sigma_g^2},\\; \\sigma_g^2\\right), \\quad \\mathbb{E}[g] = 1, \\quad \\text{Var}[g] = \\sigma_g^2$$")),
-            tags$p(tags$strong("Fano Factor",  ":")),
+            tags$p(tags$strong("Fano Factor", ":")),
             tags$p("Spike counts are drawn from a Negative Binomial distribution:"),
             tags$p(HTML("$$r_i \\sim \\text{NegBinom}\\!\\left(\\mu = g\\,\\mu_i,\\; \\text{size} = \\frac{g\\,\\mu_i}{F - 1}\\right)$$")),
             tags$p(HTML("where \\(\\mu_i\\) is the tuning curve value of neuron \\(i\\) and \\(F\\) is the Fano Factor. "), tags$sup(tags$a(href="#ref1","1"))),
@@ -230,7 +254,7 @@ ui <- fluidPage(
           hr(),
           h4("Trial-by-trial spike distributions"),
           note_panel("note_3d", tagList(
-            tags$p("The response space is high-dimensional (180 neurons), but here we visualise three neurons with preferred orientations that are critical for stimulus discrimination. Each point is one simulated trial."),
+            tags$p("The response space is high-dimensional (180 neurons), but here we visualise three neurons with preferred orientations that are critical for stimulus discrimination. Each point is one simulated trial.")
           )),
           plotlyOutput("p_3d")
       ),
@@ -247,7 +271,7 @@ ui <- fluidPage(
           h4("Discrimination boundary"),
           note_panel("note_boundary", tagList(
             tags$p("Orientation discrimination sensitivity is determined by the separability of the two response clouds for Stimulus 1 and Stimulus 2 in this multidimensional space."),
-            tags$p("Here, we visualise a discrimination boundary for the selected three neurons to find the linear hyperplane that best separates responses to Stimulus 1 from responses to Stimulus 2. The mesh surface shows where the classifier's decision probability equals 0.5 (i.e., the discrimination boundary)."),
+            tags$p("Here, we visualise a discrimination boundary for the selected three neurons to find the linear hyperplane that best separates responses to Stimulus 1 from responses to Stimulus 2. The mesh surface shows where the classifier's decision probability equals 0.5 (i.e., the discrimination boundary).")
           )),
           plotlyOutput("p_boundary"),
           uiOutput("text_boundary")
@@ -257,30 +281,42 @@ ui <- fluidPage(
       tags$div(
         style = "font-size:11px; color:#999; line-height:2.0; margin-top:8px; margin-bottom:20px;",
         tags$strong("References", style = "font-size:12px; color:#777; display:block; margin-bottom:4px;"),
-        tags$p(id = "ref8", tags$sup("†"), " ",
+        tags$p(id = "ref1", tags$sup("1"), " ",
                "Albrecht DG, Hamilton DB. Striate cortex of monkey and cat: contrast response function. ",
                tags$em("J Neurophysiol."), " 1982;48(1):217–237."),
-        tags$p(id = "ref1", tags$sup("1"), " ",
-               "Goris RL, Movshon JA, Simoncelli EP. Partitioning neuronal variability. ",
-               tags$em("Nat Neurosci."), " 2014;17(6):858–865. doi:10.1038/nn.3711"),
         tags$p(id = "ref2", tags$sup("2"), " ",
-               "Lin IC, Okun M, Carandini M, Harris KD. The Nature of Shared Cortical Variability. ",
-               tags$em("Neuron."), " 2015;87(3):644–656. doi:10.1016/j.neuron.2015.06.035"),
+               "Goris RL, Movshon JA, Simoncelli EP. Partitioning neuronal variability. ",
+               tags$em("Nat Neurosci."), " 2014;17(6):858–865."),
         tags$p(id = "ref3", tags$sup("3"), " ",
-               "Shapcott K, Schmiedt J, Saunders R, et al. Correlated activity of cortical neurons survives extensive removal of feedforward sensory input. ",
-               tags$em("Sci Rep."), " 2016;6:34886. doi:10.1038/srep34886"),
+               "Lin IC, Okun M, Carandini M, Harris KD. The Nature of Shared Cortical Variability. ",
+               tags$em("Neuron."), " 2015;87(3):644–656."),
         tags$p(id = "ref4", tags$sup("4"), " ",
-               "Cohen MR, Maunsell JH. Attention improves performance primarily by reducing interneuronal correlations. ",
-               tags$em("Nat Neurosci."), " 2009;12(12):1594–1600. doi:10.1038/nn.2439"),
+               "Miyoshi K, and Lau H. A decision-congruent heuristic gives superior metacognitive sensitivity under realistic variance assumptions. ",
+               tags$em("Psychol. Rev."), " 2020;127:655–671."),
         tags$p(id = "ref5", tags$sup("5"), " ",
+               "Phillips I. Blindsight is qualitatively degraded conscious vision. ",
+               tags$em("Psychol. Rev."), " 2021;128:558–584."),
+        tags$p(id = "ref6", tags$sup("6"), " ",
+               "Rahnev D, Maniscalco B, Graves T, Huang E, de Lange FP, and Lau H. Attention induces conservative subjective biases in visual perception. ",
+               tags$em("Nat. Neurosci."), " 2011;14:1513–1515."),
+        tags$p(id = "ref7", tags$sup("7"), " ",
+               "Okubo L, Miyoshi K, Yokosawa K, and Nishida S. Inattentional noise leads to subjective color uniformity across the visual field. ",
+               tags$em("Cognition."), " 2026;266:106293."),
+        tags$p(id = "ref8", tags$sup("8"), " ",
+               "Cohen MR, Maunsell JH. Attention improves performance primarily by reducing interneuronal correlations. ",
+               tags$em("Nat. Neurosci."), " 2009;12(12):1594–1600."),
+        tags$p(id = "ref9", tags$sup("9"), " ",
                "Mitchell JF, Sundberg KA, Reynolds JH. Differential Attention-Dependent Response Modulation across Cell Classes in Macaque Visual Area V4. ",
                tags$em("Neuron."), " 2007;55(1):131–141."),
-        tags$p(id = "ref6", tags$sup("6"), " ",
+        tags$p(id = "ref10", tags$sup("10"), " ",
                "Mitchell JF, Sundberg KA, Reynolds JH. Spatial Attention Decorrelates Intrinsic Activity Fluctuations in Macaque Area V4. ",
                tags$em("Neuron."), " 2009;63(6):879–888."),
-        tags$p(id = "ref7", tags$sup("7"), " ",
-               "Ghosh S, Maunsell JHR. Single trial neuronal activity dynamics of attentional intensity in monkey visual area V4. ",
-               tags$em("Nat Commun."), " 2021;12:2003. doi:10.1038/s41467-021-22281-2")
+        tags$p(id = "ref11", tags$sup("11"), " ",
+               "Samaha J, LaRocque JJ, and Postle BR. Spontaneous alpha-band amplitude predicts subjective visibility but not discrimination accuracy during high-level perception. ",
+               tags$em("Conscious. Cogn."), " 2022;102:103337."),
+        tags$p(id = "ref12", tags$sup("12"), " ",
+               "Iemi L, and Busch NA. Moment-to-moment fluctuations in neuronal excitability bias subjective perception rather than strategic decision-making. ",
+               tags$em("eNeuro."), " 2018;5:ENEURO.0430–17.2018.")
       )
     )
   )
@@ -290,6 +326,28 @@ ui <- fluidPage(
 # Server
 # ============================================================
 server <- function(input, output, session) {
+  
+  # ---- Phenomenon intro ----
+  output$phenomenon_intro <- renderUI({
+    item <- phenomenon_intro_content[[input$preset]]
+    if (is.null(item)) return(NULL)
+    tags$div(
+      style = "background:#f9f9f9; border:1px solid #ddd; border-radius:6px; padding:16px 20px; margin-bottom:16px;",
+      fluidRow(
+        column(8,
+               tags$h4(item$title, style = "margin-top:0; color:#333;"),
+               tags$p(item$body, item$refs, style = "font-size:14px; color:#555; line-height:1.8;")
+        ),
+        column(4,
+               tags$img(
+                 src     = item$img,
+                 style   = "width:100%; border-radius:4px; object-fit:cover;",
+                 onerror = "this.style.display='none'"
+               )
+        )
+      )
+    )
+  })
   
   # ---- Condition labels ----
   output$label_cond_A <- renderUI({
@@ -408,11 +466,8 @@ server <- function(input, output, session) {
     }
     cA_scale <- input$contrast_A / 100
     cB_scale <- input$contrast_B / 100
-    
-    # Use preset-specific condition labels for Gabor display
     lbl_A <- cond_labels[[input$preset]]$A
     lbl_B <- cond_labels[[input$preset]]$B
-    
     panels <- list(
       list(theta = input$stim1, cs = cA_scale, px = 1, py = 2),
       list(theta = input$stim2, cs = cA_scale, px = 2, py = 2),
@@ -488,10 +543,8 @@ server <- function(input, output, session) {
     }
     colors <- color_wheel(n_neurons)
     neurons_show <- seq(1, n_neurons, by = 18)
-    
     lbl_A <- cond_labels[[input$preset]]$A
     lbl_B <- cond_labels[[input$preset]]$B
-    
     make_tc_df <- function(max_fr, spont, cond_label) {
       tc <- matrix(0, nrow = n_neurons, ncol = length(orientations))
       for (i in 1:n_neurons) {
@@ -512,9 +565,7 @@ server <- function(input, output, session) {
       make_tc_df(max_fr_A, input$spont_A, lbl_A),
       make_tc_df(max_fr_B, input$spont_B, lbl_B)
     ) %>% mutate(Condition = factor(Condition, levels = c(lbl_A, lbl_B)))
-    
     strip_colors <- setNames(c("#377EB8", "#E41A1C"), c(lbl_A, lbl_B))
-    
     g <- ggplot(df_all, aes(x = Orientation, y = FiringRate, color = Color, group = Neuron)) +
       geom_line() +
       scale_color_identity() +
