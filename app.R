@@ -213,13 +213,15 @@ ui <- fluidPage(
             tags$hr(),
             tags$p(tags$strong("Baseline activity",  ":")),
             tags$p("Baseline activity adds an orientation-independent offset to all neurons, capturing tonic firing unrelated to the stimulus."),
-            tags$p(tags$strong("Gain variability", ":")),
+            tags$p(tags$strong("Gain fluctuations", ":")),
             tags$p("On each trial, a single scalar gain \\(g\\) is sampled from a Gamma distribution and applied multiplicatively to the tuning curve values of all 180 neurons simultaneously. Because the same \\(g\\) scales every neuron, it introduces correlated trial-by-trial fluctuations across the population.", tags$sup(tags$a(href="#ref1","1")), tags$sup(tags$a(href="#ref2",", 2"))),
             tags$p(HTML("$$g \\sim \\text{Gamma}\\!\\left(\\frac{1}{\\sigma_g^2},\\; \\sigma_g^2\\right), \\quad \\mathbb{E}[g] = 1, \\quad \\text{Var}[g] = \\sigma_g^2$$")),
-            tags$p(tags$strong("Fano factor",  ":")),
-            tags$p("Spike counts are drawn from a Negative Binomial distribution, which generalises the Poisson by allowing the variance to exceed the mean (overdispersion):"),
+            tags$p(tags$strong("Fano Factor",  ":")),
+            tags$p("Spike counts are drawn from a Negative Binomial distribution:"),
             tags$p(HTML("$$r_i \\sim \\text{NegBinom}\\!\\left(\\mu = g\\,\\mu_i,\\; \\text{size} = \\frac{g\\,\\mu_i}{F - 1}\\right)$$")),
-            tags$p(HTML("where \\(\\mu_i\\) is the tuning curve value of neuron \\(i\\) and \\(F\\) is the Fano Factor. Setting size per-neuron as \\(g\\mu_i/(F-1)\\) ensures \\(\\text{Var}/\\text{Mean} \\approx F\\) across neurons. When \\(F = 1\\), size \\(\\to \\infty\\) and the distribution reduces to Poisson."))
+            tags$p(HTML("where \\(\\mu_i\\) is the tuning curve value of neuron \\(i\\) and \\(F\\) is the Fano Factor. "), tags$sup(tags$a(href="#ref1","1"))),
+            tags$p(HTML("Negative Binomial distribution generalises the Poisson by allowing the variance to exceed the mean (overdispersion). When \\(F = 1\\), the distribution reduces to Poisson.")),
+            tags$p("Both gain fluctuations and Fano Factor increase the variance of individual neurons' spike counts. However, they differ in their effect on the covariance structure of population responses. Gain fluctuations introduce shared variability across neurons: when Neuron 90 fires more, Neuron 100 tends to fire more as well. Fano Factor, in contrast, inflates each neuron's variance independently, leaving the covariance structure unchanged.")
           )),
           fluidRow(
             column(6, plotOutput("g_nr")),
@@ -228,9 +230,7 @@ ui <- fluidPage(
           hr(),
           h4("Trial-by-trial spike distributions"),
           note_panel("note_3d", tagList(
-            tags$p("The response space is high-dimensional (180 neurons), but here we visualise three neurons with preferred orientations near the stimulus values (Neuron 90°, 95°, 100°) to illustrate the geometry of population responses."),
-            tags$p("Each point is one simulated trial. Cross markers (＋) = Stimulus 1; circles (●) = Stimulus 2. The two stimuli form separate clusters in this 3-neuron subspace — their separability reflects the population's ability to discriminate the two orientations."),
-            tags$p("Gain variability stretches the clouds along the diagonal (sum) direction, because all neurons are scaled by the same g on each trial. This correlated noise structure is distinct from independent Poisson noise, and its consequences for detection and discrimination are shown in the Decoding section.")
+            tags$p("The response space is high-dimensional (180 neurons), but here we visualise three neurons with preferred orientations that are critical for stimulus discrimination. Each point is one simulated trial."),
           )),
           plotlyOutput("p_3d")
       ),
@@ -239,18 +239,15 @@ ui <- fluidPage(
           h4("Decoding / Read-out", style = "color:#17A589; margin-top:0;"),
           h4("Total spike count"),
           note_panel("note_density", tagList(
-            tags$p("The total (summed) spike count across all 180 neurons is computed for each trial. This scalar summary projects the 180-dimensional population response onto a single axis — the detection read-out axis."),
-            tags$p("According to the population coding framework for visual awareness, the likelihood of a stimulus being consciously perceived depends on whether the total population response crosses an internal threshold (the detection hyperplane). A rightward shift of the distribution increases the probability of detection, regardless of whether the stimulus features are accurately encoded."),
-            tags$p(HTML("Baseline activity and Fano Factor both inflate the total spike count and its variance, respectively, and can therefore modulate detection sensitivity independently of orientation discrimination. Gain variability, in contrast, expands the distribution along the total-spike axis, broadening it without systematically shifting its mean. See Goris et al. (2014)", tags$sup(tags$a(href="#ref1","1")), " and Lin et al. (2015)", tags$sup(tags$a(href="#ref2","2")), " for the relationship between shared gain fluctuations and population response variability."))
+            tags$p("The total (summed) spike count across all 180 neurons is computed for each trial. This scalar summary projects the 180-dimensional population response onto a single axis — the awareness read-out axis. According to the proposed framework, the probability of a stimulus being consciously perceived depends on whether the total population response crosses an internal threshold (the detection hyperplane). A rightward shift of the distribution increases this probability, regardless of whether each stimulus features can be accurately discriminated.")
           )),
           plotOutput("g_density"),
           uiOutput("text_density"),
           hr(),
           h4("Discrimination boundary"),
           note_panel("note_boundary", tagList(
-            tags$p("A logistic regression classifier is trained on the spike counts of three neurons (preferred orientations: 90°, 95°, 100°) to find the linear hyperplane that best separates responses to Stimulus 1 from responses to Stimulus 2. The mesh surface shows where the classifier's decision probability equals 0.5 — i.e., the discrimination boundary."),
-            tags$p("Orientation discrimination sensitivity is determined by the separability of the two response clouds in this 3-neuron subspace. The orientation of the boundary plane and the compactness of the clouds jointly determine how well S1 and S2 can be told apart."),
-            tags$p("Gain variability stretches both clouds along the diagonal axis (total spike direction) without rotating the discrimination boundary, because the correlated noise lies parallel to the sum direction and orthogonal to the orientation-difference direction. This geometry explains why gain variability can impair detection (total spike read-out) while leaving orientation discrimination largely intact — a key prediction of the population noise framework for blindsight and related dissociations.")
+            tags$p("Orientation discrimination sensitivity is determined by the separability of the two response clouds for Stimulus 1 and Stimulus 2 in this multidimensional space."),
+            tags$p("Here, we visualise a discrimination boundary for the selected three neurons to find the linear hyperplane that best separates responses to Stimulus 1 from responses to Stimulus 2. The mesh surface shows where the classifier's decision probability equals 0.5 (i.e., the discrimination boundary)."),
           )),
           plotlyOutput("p_boundary"),
           uiOutput("text_boundary")
