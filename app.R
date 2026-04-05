@@ -212,22 +212,21 @@ ui <- fluidPage(
           uiOutput("key_assumption_box"),
           h4("Tuning curves"),
           note_panel("note_tuning", tagList(
+            tags$p(tags$strong("Tuning curves", ":")),
             tags$p("Each of the 180 model neurons has a circular Gaussian orientation tuning curve. The peak response amplitude is determined by the Naka-Rushton contrast-response function:"),
             tags$p(HTML("$$R(c) = R_{\\max} \\cdot \\frac{c^n}{c^n + C_{50}^n}$$")),
             tags$p(HTML("Parameters are set to \\(R_{\\max} = 115\\) spikes/s, \\(C_{50} = 19.3\\%\\), \\(n = 2.9\\), based on physiological measurements across monkey and cat V1."), tags$sup(tags$a(href="#ref1","1"))),
-            tags$hr(),
             tags$p(tags$strong("Baseline activity", ":")),
             tags$p("Baseline activity adds an orientation-independent offset to all neurons, capturing tonic firing unrelated to the stimulus."),
+            tags$hr(),
+            tags$p("Spike counts are drawn from a Negative Binomial distribution:"),
+            tags$p(HTML("$$r_i \\sim \\text{NegBinom}\\!\\left(\\mu = g\\,\\mu_i,\\; \\text{size} = \\frac{g\\,\\mu_i}{F - 1}\\right)$$")),
+            tags$p(HTML("where \\(\\mu_i\\) is the tuning curve value of neuron \\(i\\) ,  \\(g\\) is a multiplicative gain, and \\(F\\) is a Fano Factor. "), tags$sup(tags$a(href="#ref2","2"))),
             tags$p(tags$strong("Gain fluctuations", ":")),
             tags$p("On each trial, a single scalar gain \\(g\\) is sampled from a Gamma distribution and applied multiplicatively to the tuning curve values of all 180 neurons simultaneously. Because the same \\(g\\) scales every neuron, it introduces correlated trial-by-trial fluctuations across the population.", tags$sup(tags$a(href="#ref2","2")), tags$sup(tags$a(href="#ref3",", 3"))),
             tags$p(HTML("$$g \\sim \\text{Gamma}\\!\\left(\\frac{1}{\\sigma_g^2},\\; \\sigma_g^2\\right), \\quad \\mathbb{E}[g] = 1, \\quad \\text{Var}[g] = \\sigma_g^2$$")),
             tags$p(tags$strong("Fano Factor", ":")),
-            tags$p("Spike counts are drawn from a Negative Binomial distribution:"),
-            tags$p(HTML("$$r_i \\sim \\text{NegBinom}\\!\\left(\\mu = g\\,\\mu_i,\\; \\text{size} = \\frac{g\\,\\mu_i}{F - 1}\\right)$$")),
-            tags$p(HTML("where \\(\\mu_i\\) is the tuning curve value of neuron \\(i\\) and \\(F\\) is the Fano Factor. "), tags$sup(tags$a(href="#ref2","2"))),
-            tags$p(HTML("Negative Binomial distribution generalises the Poisson by allowing the variance to exceed the mean (overdispersion). When \\(F = 1\\), the distribution reduces to Poisson.")),
-            tags$hr(),
-            tags$p("Both gain fluctuations and Fano Factor increase the variance of individual neurons' spike counts. However, they differ in their effect on the covariance structure of population responses. Gain fluctuations introduce shared variability across neurons: when Neuron 90 fires more, Neuron 100 tends to fire more as well. Fano Factor, in contrast, inflates each neuron's variance independently, leaving the covariance structure unchanged.")
+            tags$p(HTML("Negative Binomial distribution generalises the Poisson by allowing the variance to exceed the mean (overdispersion). When \\(F = 1\\), the distribution reduces to Poisson."))
           )),
           fluidRow(
             column(6, plotOutput("g_nr")),
@@ -236,7 +235,9 @@ ui <- fluidPage(
           hr(),
           h4("Trial-by-trial spike distributions"),
           note_panel("note_3d", tagList(
-            tags$p("The response space is high-dimensional (180 neurons), but here we visualise three neurons with preferred orientations that are critical for stimulus discrimination. Each point is one simulated trial.")
+            tags$p("The response space is high-dimensional (180 neurons), but here we visualise three neurons with preferred orientations that are critical for stimulus discrimination. Each point is one simulated trial."),
+            tags$p(tags$strong("Gain fluctuations and Fano Factor", ":")),
+            tags$p("Both gain fluctuations and Fano Factor increase the variance of individual neurons' spike counts. However, they differ in their effect on the covariance structure of population responses. Gain fluctuations introduce shared variability across neurons: when Neuron 90 fires more, Neuron 100 tends to fire more as well. Fano Factor, in contrast, inflates each neuron's variance independently, leaving the covariance structure unchanged.")
           )),
           plotlyOutput("p_3d")
       ),
@@ -375,13 +376,6 @@ server <- function(input, output, session) {
       id = "fano_A", title = if (!is.null(tips$fano_A)) tips$fano_A else ""))
   })
   
-  # ---- Key assumption box ----
-  output$key_assumption_box <- renderUI({
-    txt <- phenomenon_intro_content[[input$preset]]
-    if (is.null(txt)) return(NULL)
-    # key_assumption is not separate in this version; kept for compatibility
-    NULL
-  })
   
   # ---- sim_result ----
   sim_result <- eventReactive(input$run, {
@@ -708,9 +702,9 @@ server <- function(input, output, session) {
     ),
     blindsight = list(
       density  = list(title = "Core features of Blindsight",
-                      body  = "Under high gain fluctuations, increased gain variability expands the manifold along the total spike axis, impairing yes/no detection sensitivity."),
+                      body  = "Under high gain fluctuations, increased gain variability expands the manifold along the total spike axis, impairing yes/no detection sensitivity (i.e., gain fluctuations increase noise along the detection axis)."),
       boundary = list(title = "Core features of Blindsight",
-                      body  = "Under high gain fluctuations, increased gain variability produces response correlations parallel to the orientation discrimination hyperplane, leaving discrimination sensitivity unaffected.")
+                      body  = "Under high gain fluctuations, increased gain variability produces response correlations parallel to the orientation discrimination hyperplane, leaving discrimination sensitivity unaffected (i.e., gain fluctuations induce correlation across the population response. This covariance structure preserves orientation discrimination).")
     )
   )
   
