@@ -54,25 +54,29 @@ cond_labels <- list(
   subjective = list(A = "Low attention", B = "High attention")
 )
 
-
 # Phenomenon intro per preset
+# body  = 1-2 sentence summary shown above the hr()
+# body2 = additional text shown below the hr() — fill in later
 phenomenon_intro_content <- list(
   manual     = NULL,
   samaha     = list(
     title = "Samaha effect",
-    body  = "Low pre-stimulus α power, associated with increased baseline neural activity, predicts increased visibility while leaving orientation discrimination sensitivity unchanged.",
+    body  = "Low pre-stimulus α power predicts increased visibility while leaving orientation discrimination sensitivity unchanged.",
+    body2 = tagList("Our simulations below reveal that increased baseline neural activity associated with low pre-stimulus α power", tags$sup(tags$a(href="#ref9","9")), " is sufficient to account for these observations."),
     refs  = tagList(tags$sup(tags$a(href="#ref11","11")), ", ", tags$sup(tags$a(href="#ref12","12"))),
     img   = "samaha.png"
   ),
   blindsight = list(
     title = "Blindsight",
     body  = "Lesions in the primary visual cortex impair awareness (yes/no detection sensitivity) while leaving orientation discrimination sensitivity largely intact.",
+    body2 = tagList("Our simulations below reveal that elevating neural gain fluctuations following V1 lesions is sufficient to account for these observations."),
     refs  = tagList(tags$sup(tags$a(href="#ref4","4")), ", ", tags$sup(tags$a(href="#ref5","5"))),
     img   = "blindsight.png"
   ),
   subjective = list(
     title = "Subjective inflation",
     body  = "Inattention leads to lower discrimination sensitivity but paradoxically increases subjective awareness.",
+    body2 = tagList("Our simulations below reveal that increased spike variability by inattention", tags$sup(tags$a(href="#ref10","10")), " is sufficient to account for these observations."),
     refs  = tagList(tags$sup(tags$a(href="#ref6","6")), ", ", tags$sup(tags$a(href="#ref7","7"))),
     img   = "subjective.png"
   )
@@ -113,7 +117,6 @@ note_panel <- function(id, content) {
 # ============================================================
 ui <- fluidPage(
   useShinyjs(),
-  # MathJax for rendering math formulas
   tags$head(
     tags$script(src = "https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-chtml.js"),
     tags$script(HTML("
@@ -156,7 +159,6 @@ ui <- fluidPage(
              .tooltip('destroy').tooltip({placement: 'right'});
       }
     });
-    // Re-render MathJax when collapse panels are opened
     $(document).on('shown.bs.collapse', function() {
       if (window.MathJax && MathJax.typesetPromise) {
         MathJax.typesetPromise();
@@ -165,7 +167,6 @@ ui <- fluidPage(
   ")),
   sidebarLayout(
     sidebarPanel(
-      # How to use
       tags$div(class = "how-to-use-box",
                tags$strong("How to use", style = "font-size:13px; color:#444;"),
                tags$ol(style = "padding-left:16px; margin-top:4px;",
@@ -201,7 +202,6 @@ ui <- fluidPage(
       actionButton("run", "Run simulation", class = "btn-primary")
     ),
     mainPanel(
-      # ---- Phenomenon introduction (preset-linked) ----
       uiOutput("phenomenon_intro"),
       h4("Stimuli"),
       plotOutput("g_stimuli", height = "180px"),
@@ -314,11 +314,19 @@ server <- function(input, output, session) {
     item <- phenomenon_intro_content[[input$preset]]
     if (is.null(item)) return(NULL)
     tags$div(
-      style = "background:#f9f9f9; border:1px solid #ddd; border-radius:6px; padding:16px 20px; margin-bottom:16px;",
+      style = "border: 2.5px solid #222; border-radius: 8px; overflow: hidden; margin-bottom: 20px; box-shadow: 0 3px 10px rgba(0,0,0,0.15);",
+      tags$div(
+        style = "background: #222; padding: 10px 20px;",
+        tags$h4(item$title, style = "color: white; margin: 0; font-size: 20px; letter-spacing: 0.5px;")
+      ),
       fluidRow(
+        style = "margin: 0; padding: 16px 20px; background: white;",
         column(8,
-               tags$h4(item$title, style = "margin-top:0; color:#333;"),
-               tags$p(item$body, item$refs, style = "font-size:14px; color:#555; line-height:1.8;")
+               tags$p(item$body, item$refs, style = "font-size:15px; color:#333; line-height:1.9; margin:0;"),
+               if (!is.null(item$body2)) tagList(
+                 tags$hr(style = "margin: 10px 0;"),
+                 tags$p(item$body2, style = "font-size:14px; color:#555; line-height:1.8; margin:0;")
+               )
         ),
         column(4,
                tags$img(
@@ -365,6 +373,14 @@ server <- function(input, output, session) {
       id = "sigma_g_A", title = if (!is.null(tips$sigma_g_A)) tips$sigma_g_A else ""))
     session$sendCustomMessage("updateTooltip", list(
       id = "fano_A", title = if (!is.null(tips$fano_A)) tips$fano_A else ""))
+  })
+  
+  # ---- Key assumption box ----
+  output$key_assumption_box <- renderUI({
+    txt <- phenomenon_intro_content[[input$preset]]
+    if (is.null(txt)) return(NULL)
+    # key_assumption is not separate in this version; kept for compatibility
+    NULL
   })
   
   # ---- sim_result ----
@@ -679,21 +695,21 @@ server <- function(input, output, session) {
   subtitle_texts <- list(
     manual     = list(density = NULL, boundary = NULL),
     samaha     = list(
-      density  = list(title = "Samaha effect",
+      density  = list(title = "Core features of Samaha effect",
                       body  = "Under lower α, increased baseline activity shifts the population response toward greater total spiking, causing higher visibility rating."),
-      boundary = list(title = "Samaha effect",
+      boundary = list(title = "Core features of Samaha effect",
                       body  = "Under lower α, increased baseline activity shifts the population response along the direction parallel to the discrimination hyperplane, leaving orientation discrimination sensitivity unchanged.")
     ),
     subjective = list(
-      density  = list(title = "Subjective inflation",
+      density  = list(title = "Core features of Subjective inflation",
                       body  = "Under low attention, greater spike variability increases the chance of the population response exceeding the detection hyperplane."),
-      boundary = list(title = "Subjective inflation",
+      boundary = list(title = "Core features of Subjective inflation",
                       body  = "Under low attention, greater spike variability reduces manifold separability.")
     ),
     blindsight = list(
-      density  = list(title = "Blindsight",
+      density  = list(title = "Core features of Blindsight",
                       body  = "Under high gain fluctuations, increased gain variability expands the manifold along the total spike axis, impairing yes/no detection sensitivity."),
-      boundary = list(title = "Blindsight",
+      boundary = list(title = "Core features of Blindsight",
                       body  = "Under high gain fluctuations, increased gain variability produces response correlations parallel to the orientation discrimination hyperplane, leaving discrimination sensitivity unaffected.")
     )
   )
