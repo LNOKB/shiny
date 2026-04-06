@@ -199,7 +199,7 @@ ui <- fluidPage(
             tags$p("The model comprises a population of 180 neurons, each selectively tuned to a unique orientation spanning the full range of orientations."),
             tags$p("Spike count is drawn from a Negative Binomial distribution:"),
             tags$p(HTML("$$r_{ij} \\sim \\text{NegBinom}\\!\\left(\\mu = g\\,\\mu_{ij},\\; \\text{size} = \\frac{g\\,\\mu_{ij}}{F - 1}\\right)$$")),
-            tags$p(HTML("where \\(\\mu_i\\) is the tuning curve value of neuron \\(i\\) ,  \\(g\\) is a multiplicative gain, and \\(F\\) is a Fano Factor. "), tags$sup(tags$a(href="#ref2","2"))),            tags$p(HTML("$$R(C) = R_{\\max} \\cdot \\frac{C^n}{C^n + C_{50}^n}$$")),
+            tags$p(HTML("where \\(\\mu_{ij}\\) is the spike count for a neuron tuned to orientation \\(j\\) under a stimulus orientation \\(i\\) ,  \\(g\\) is a multiplicative gain, and \\(F\\) is a Fano Factor. "), tags$sup(tags$a(href="#ref2","2"))),            tags$p(HTML("$$R(C) = R_{\\max} \\cdot \\frac{C^n}{C^n + C_{50}^n}$$")),
             tags$p(HTML("Parameters are set to \\(R_{\\max} = 115\\) spikes/s, \\(C_{50} = 19.3\\%\\), \\(n = 2.9\\), based on physiological measurements in V1."), tags$sup(tags$a(href="#ref1","1"))),
             tags$p(tags$strong("Baseline activity", ":")),
             tags$p("Baseline activity adds an orientation-independent offset to all neurons, capturing responses unrelated to the stimulus."),
