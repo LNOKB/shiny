@@ -55,45 +55,29 @@ cond_labels <- list(
 )
 
 # Phenomenon intro per preset
-# body  = 1-2 sentence summary shown above the hr()
-# body2 = additional text shown below the hr() — fill in later
 phenomenon_intro_content <- list(
   manual     = NULL,
   samaha     = list(
     title = "Samaha effect",
     body  = "Low pre-stimulus α power predicts increased visibility while leaving orientation discrimination sensitivity unchanged.",
-    body2 = tagList("Our simulations below reveal that increased baseline neural activity associated with low pre-stimulus α power", tags$sup(tags$a(href="#ref9","9")), " is sufficient to account for these observations."),
+    body2 = tagList("Our simulations below demonstrate that increased baseline neural activity associated with low pre-stimulus α power", tags$sup(tags$a(href="#ref9","9")), " is sufficient to account for these observations."),
     refs  = tagList(tags$sup(tags$a(href="#ref11","11")), ", ", tags$sup(tags$a(href="#ref12","12"))),
     img   = "samaha.png"
   ),
   blindsight = list(
     title = "Blindsight",
     body  = "Lesions in the primary visual cortex impair awareness (yes/no detection sensitivity) while leaving orientation discrimination sensitivity largely intact.",
-    body2 = tagList("Our simulations below reveal that elevating neural gain fluctuations following V1 lesions is sufficient to account for these observations."),
+    body2 = tagList("Our simulations below demonstrate that elevating neural gain fluctuations following V1 lesions is sufficient to account for these observations."),
     refs  = tagList(tags$sup(tags$a(href="#ref4","4")), ", ", tags$sup(tags$a(href="#ref5","5"))),
     img   = "blindsight.png"
   ),
   subjective = list(
     title = "Subjective inflation",
     body  = "Inattention leads to lower discrimination sensitivity but paradoxically increases subjective awareness.",
-    body2 = tagList("Our simulations below reveal that increased spike variability by inattention", tags$sup(tags$a(href="#ref10","10")), " is sufficient to account for these observations."),
+    body2 = tagList("Our simulations below demonstrate that increased spike variability by inattention", tags$sup(tags$a(href="#ref10","10")), " is sufficient to account for these observations."),
     refs  = tagList(tags$sup(tags$a(href="#ref6","6")), ", ", tags$sup(tags$a(href="#ref7","7"))),
     img   = "subjective.png"
   )
-)
-
-# Tooltip text per slider per preset
-slider_tooltips <- list(
-  samaha = list(
-    spont_A = "Under lower α (Condition A), baseline activity increases regardless of stimulus orientation — this is the key manipulation."
-  ),
-  blindsight = list(
-    sigma_g_A = "Under high gain fluctuations (Condition A), trial-by-trial gain fluctuations are larger, producing correlated variability across the population."
-  ),
-  subjective = list(
-    fano_A = "Under low attention (Condition A), spike count variance relative to the mean is increased, broadening the population response distribution."
-  ),
-  manual = list()
 )
 
 # ============================================================
@@ -171,8 +155,8 @@ ui <- fluidPage(
                tags$strong("How to use", style = "font-size:13px; color:#444;"),
                tags$ol(style = "padding-left:16px; margin-top:4px;",
                        tags$li("Select a preset scenario from the dropdown."),
-                       tags$li("Adjust sliders if needed (greyed-out sliders are fixed for the selected preset)."),
                        tags$li("Click ", tags$strong("Run simulation"), " to generate results."),
+                       tags$li("Adjust sliders if needed (greyed-out sliders are fixed for the selected preset)."),
                        tags$li("Explore the Encoding and Decoding sections below.")
                )
       ),
@@ -191,13 +175,13 @@ ui <- fluidPage(
       div(id = "wrap_contrast_A", sliderInput("contrast_A", "Stimulus contrast (%)", min = 1,    max = 100, value = 40,   step = 1)),
       div(id = "wrap_sigma_g_A",  sliderInput("sigma_g_A",  "Gain fluctuations",     min = 0.01, max = 0.5, value = 0.05, step = 0.01)),
       div(id = "wrap_spont_A",    sliderInput("spont_A",    "Baseline activity",     min = 0,    max = 25,  value = 2,    step = 0.5)),
-      div(id = "wrap_fano_A",     sliderInput("fano_A",     "Fano Factor",           min = 1,    max = 5,   value = 1,    step = 0.5)),
+      div(id = "wrap_fano_A",     sliderInput("fano_A",     "Fano factor",           min = 1,    max = 5,   value = 1,    step = 0.5)),
       hr(),
       uiOutput("label_cond_B"),
       div(id = "wrap_contrast_B", sliderInput("contrast_B", "Stimulus contrast (%)", min = 1,    max = 100, value = 40,   step = 1)),
       div(id = "wrap_sigma_g_B",  sliderInput("sigma_g_B",  "Gain fluctuations",     min = 0.01, max = 0.5, value = 0.05, step = 0.01)),
       div(id = "wrap_spont_B",    sliderInput("spont_B",    "Baseline activity",     min = 0,    max = 25,  value = 2,    step = 0.5)),
-      div(id = "wrap_fano_B",     sliderInput("fano_B",     "Fano Factor",           min = 1,    max = 10,  value = 1,    step = 0.5)),
+      div(id = "wrap_fano_B",     sliderInput("fano_B",     "Fano factor",           min = 1,    max = 10,  value = 1,    step = 0.5)),
       hr(),
       actionButton("run", "Run simulation", class = "btn-primary")
     ),
@@ -212,20 +196,20 @@ ui <- fluidPage(
           uiOutput("key_assumption_box"),
           h4("Tuning curves"),
           note_panel("note_tuning", tagList(
-            tags$p(tags$strong("Tuning curves", ":")),
+            tags$p("The model comprises a population of 180 neurons, each selectively tuned to a unique orientation spanning the full range of orientations."),
+            tags$p("Spike count is drawn from a Negative Binomial distribution:"),
+            tags$p(HTML("$$r_i \\sim \\text{NegBinom}\\!\\left(\\mu = g\\,\\mu_i,\\; \\text{size} = \\frac{g\\,\\mu_i}{F - 1}\\right)$$")),
+            tags$p(HTML("where \\(\\mu_i\\) is the tuning curve value of neuron \\(i\\) ,  \\(g\\) is a multiplicative gain, and \\(F\\) is a Fano factor. "), tags$sup(tags$a(href="#ref2","2"))),
             tags$p("Each of the 180 model neurons has a circular Gaussian orientation tuning curve. The peak response amplitude is determined by the Naka-Rushton contrast-response function:"),
-            tags$p(HTML("$$R(c) = R_{\\max} \\cdot \\frac{c^n}{c^n + C_{50}^n}$$")),
+            tags$p(HTML("$$R(C) = R_{\\max} \\cdot \\frac{C^n}{C^n + C_{50}^n}$$")),
             tags$p(HTML("Parameters are set to \\(R_{\\max} = 115\\) spikes/s, \\(C_{50} = 19.3\\%\\), \\(n = 2.9\\), based on physiological measurements across monkey and cat V1."), tags$sup(tags$a(href="#ref1","1"))),
             tags$p(tags$strong("Baseline activity", ":")),
-            tags$p("Baseline activity adds an orientation-independent offset to all neurons, capturing tonic firing unrelated to the stimulus."),
+            tags$p("Baseline activity adds an orientation-independent offset to all neurons, capturing responses unrelated to the stimulus."),
             tags$hr(),
-            tags$p("Spike counts are drawn from a Negative Binomial distribution:"),
-            tags$p(HTML("$$r_i \\sim \\text{NegBinom}\\!\\left(\\mu = g\\,\\mu_i,\\; \\text{size} = \\frac{g\\,\\mu_i}{F - 1}\\right)$$")),
-            tags$p(HTML("where \\(\\mu_i\\) is the tuning curve value of neuron \\(i\\) ,  \\(g\\) is a multiplicative gain, and \\(F\\) is a Fano Factor. "), tags$sup(tags$a(href="#ref2","2"))),
             tags$p(tags$strong("Gain fluctuations", ":")),
-            tags$p("On each trial, a single scalar gain \\(g\\) is sampled from a Gamma distribution and applied multiplicatively to the tuning curve values of all 180 neurons simultaneously. Because the same \\(g\\) scales every neuron, it introduces correlated trial-by-trial fluctuations across the population.", tags$sup(tags$a(href="#ref2","2")), tags$sup(tags$a(href="#ref3",", 3"))),
+            tags$p("On each trial, a single scalar gain \\(g\\) is sampled from a Gamma distribution and applied multiplicatively to the tuning curve values of all 180 neurons simultaneously. The slider value is the parameter controlling the variance of the Gamma distribution. Gain fluctuations introduce trial-by-trial spile count correlation across the population (often conceptualized as noise correlation).", tags$sup(tags$a(href="#ref2","2")), tags$sup(tags$a(href="#ref3",", 3"))),
             tags$p(HTML("$$g \\sim \\text{Gamma}\\!\\left(\\frac{1}{\\sigma_g^2},\\; \\sigma_g^2\\right), \\quad \\mathbb{E}[g] = 1, \\quad \\text{Var}[g] = \\sigma_g^2$$")),
-            tags$p(tags$strong("Fano Factor", ":")),
+            tags$p(tags$strong("Fano factor", ":")),
             tags$p(HTML("Negative Binomial distribution generalises the Poisson by allowing the variance to exceed the mean (overdispersion). When \\(F = 1\\), the distribution reduces to Poisson."))
           )),
           fluidRow(
@@ -235,9 +219,9 @@ ui <- fluidPage(
           hr(),
           h4("Trial-by-trial spike distributions"),
           note_panel("note_3d", tagList(
-            tags$p("The response space is high-dimensional (180 neurons), but here we visualise three neurons with preferred orientations that are critical for stimulus discrimination. Each point is one simulated trial."),
-            tags$p(tags$strong("Gain fluctuations and Fano Factor", ":")),
-            tags$p("Both gain fluctuations and Fano Factor increase the variance of individual neurons' spike counts. However, they differ in their effect on the covariance structure of population responses. Gain fluctuations introduce shared variability across neurons: when Neuron 90 fires more, Neuron 100 tends to fire more as well. Fano Factor, in contrast, inflates each neuron's variance independently, leaving the covariance structure unchanged.")
+            tags$p("The response space is high-dimensional (180 neurons), but here we visualise three example neurons. Each point is one simulated trial."),
+            tags$p(tags$strong("Gain fluctuations and Fano factor", ":")),
+            tags$p("Both gain fluctuations and Fano Factor increase the variance of individual neurons' spike counts. However, they differ in their effect on the covariance of population responses. Gain fluctuations introduce shared variability across neurons: when Neuron 90 fires more, Neuron 100 tends to fire more as well. Fano factor, in contrast, inflates each neuron's variance independently, leaving the covariance structure unchanged.")
           )),
           plotlyOutput("p_3d")
       ),
@@ -246,15 +230,17 @@ ui <- fluidPage(
           h4("Decoding / Read-out", style = "color:#17A589; margin-top:0;"),
           h4("Total spike count"),
           note_panel("note_density", tagList(
-            tags$p("The total (summed) spike count across all 180 neurons is computed for each trial. This scalar summary projects the 180-dimensional population response onto a single axis — the awareness read-out axis. According to the proposed framework, the probability of a stimulus being consciously perceived depends on whether the total population response crosses an internal threshold (the detection hyperplane). A rightward shift of the distribution increases this probability, regardless of whether each stimulus features can be accurately discriminated.")
+            tags$p("A total spike summed across all 180 neurons is computed for each trial. This scalar summary projects the 180-dimensional population response onto a single axis — the awareness read-out axis. According to the proposed framework, the probability of a stimulus being consciously detected corresponds to the density of this total spike count distribution over the detection threshold. Visiblity can also be explained by setting rating criteria along this axis."),
+            tags$p("Since total spike count is agnostic of activity patterns of individual neurons, awareness can be separated from discrimination sensitivity and uncertainty.")
           )),
           plotOutput("g_density"),
           uiOutput("text_density"),
           hr(),
           h4("Discrimination boundary"),
           note_panel("note_boundary", tagList(
-            tags$p("Orientation discrimination sensitivity is determined by the separability of the two response clouds for Stimulus 1 and Stimulus 2 in this multidimensional space."),
-            tags$p("Here, we visualise a discrimination boundary for the selected three neurons to find the linear hyperplane that best separates responses to Stimulus 1 from responses to Stimulus 2. The mesh surface shows where the classifier's decision probability equals 0.5 (i.e., the discrimination boundary).")
+            tags$p("Within this 3D space, the mech surface shows orientation discrimination hyperplane that best separates S1 from S2."),
+            tags$p("Decision uncertainty corresponds to the distance of each spike point from the this discrimination boundary."),
+            tags$p("In this manner, sensitivity, uncertainty and awareness can be read out as separate constructs.")
           )),
           plotlyOutput("p_boundary"),
           uiOutput("text_boundary")
@@ -350,7 +336,7 @@ server <- function(input, output, session) {
     h5(lbl, style = "color:#E41A1C; font-weight:bold;")
   })
   
-  # ---- Preset: update sliders, enable/disable, update tooltips ----
+  # ---- Preset: update sliders, enable/disable ----
   observeEvent(input$preset, {
     p      <- presets[[input$preset]]
     active <- active_sliders[[input$preset]]
@@ -367,15 +353,7 @@ server <- function(input, output, session) {
       if (sl %in% active) removeClass(wrap_id, "slider-disabled")
       else                 addClass(wrap_id,    "slider-disabled")
     }
-    tips <- slider_tooltips[[input$preset]]
-    session$sendCustomMessage("updateTooltip", list(
-      id = "spont_A", title = if (!is.null(tips$spont_A)) tips$spont_A else ""))
-    session$sendCustomMessage("updateTooltip", list(
-      id = "sigma_g_A", title = if (!is.null(tips$sigma_g_A)) tips$sigma_g_A else ""))
-    session$sendCustomMessage("updateTooltip", list(
-      id = "fano_A", title = if (!is.null(tips$fano_A)) tips$fano_A else ""))
   })
-  
   
   # ---- sim_result ----
   sim_result <- eventReactive(input$run, {
@@ -502,7 +480,7 @@ server <- function(input, output, session) {
       geom_line(linewidth = 0.7) +
       geom_point(data = pts, aes(x = x, y = y, color = col), size = 3) +
       scale_color_identity() +
-      annotate("text", x = 50, y = 130, label = "Naka-Rushton",
+      annotate("text", x = 50, y = 130, label = "Naka-Rushton function",
                vjust = 1, hjust = 0.5, size = 7) +
       scale_x_continuous(limits = c(0, 100), breaks = c(0, 25, 50, 75, 100)) +
       coord_cartesian(ylim = c(0, 130)) +
@@ -595,32 +573,47 @@ server <- function(input, output, session) {
     req(sim_result())
     lbl_A <- cond_labels[[input$preset]]$A
     lbl_B <- cond_labels[[input$preset]]$B
+    s1 <- min(input$stim1, input$stim2)
+    s2 <- max(input$stim1, input$stim2)
+    n1 <- max(1,   round(s1 - 10))
+    n2 <- max(1,   min(180, round((s1 + s2) / 2)))
+    n3 <- min(180, round(s2 + 10))
+    nn1 <- as.character(n1); nn2 <- as.character(n2); nn3 <- as.character(n3)
     df_3d <- sim_result() %>%
-      filter(Neuron %in% c(95, 90, 100)) %>%
+      filter(Neuron %in% c(n1, n2, n3)) %>%
       pivot_wider(id_cols = c(Condition, Stimulus, Trial),
-                  names_from = Neuron, values_from = Spikes) %>%
-      mutate(CondLabel = ifelse(Condition == "A", lbl_A, lbl_B))
-    s1 <- input$stim1; s2 <- input$stim2
+                  names_from = Neuron, values_from = Spikes)
+    get_xyz <- function(df_sub) list(
+      x = df_sub[[nn1]], y = df_sub[[nn2]], z = df_sub[[nn3]]
+    )
+    dA1 <- df_3d %>% filter(Condition == "A", Stimulus == input$stim1)
+    dA2 <- df_3d %>% filter(Condition == "A", Stimulus == input$stim2)
+    dB1 <- df_3d %>% filter(Condition == "B", Stimulus == input$stim1)
+    dB2 <- df_3d %>% filter(Condition == "B", Stimulus == input$stim2)
     plot_ly() %>%
-      add_trace(data = df_3d %>% filter(Stimulus == s1),
-                x = ~`95`, y = ~`90`, z = ~`100`,
-                color = ~factor(CondLabel), colors = c("#377EB8", "#E41A1C"),
+      add_trace(x = dA1[[nn1]], y = dA1[[nn2]], z = dA1[[nn3]],
                 type = "scatter3d", mode = "markers",
-                marker = list(size = 3.5, symbol = "cross"),
-                name = ~paste0(CondLabel, "; S1")) %>%
-      add_trace(data = df_3d %>% filter(Stimulus == s2),
-                x = ~`95`, y = ~`90`, z = ~`100`,
-                color = ~factor(CondLabel), colors = c("#377EB8", "#E41A1C"),
+                marker = list(size = 3.5, symbol = "cross", color = "#377EB8"),
+                name = paste0(lbl_A, "; S1"), legendrank = 1) %>%
+      add_trace(x = dA2[[nn1]], y = dA2[[nn2]], z = dA2[[nn3]],
                 type = "scatter3d", mode = "markers",
-                marker = list(size = 1.7, symbol = "circle"),
-                name = ~paste0(CondLabel, "; S2")) %>%
+                marker = list(size = 1.7, symbol = "circle", color = "#377EB8"),
+                name = paste0(lbl_A, "; S2"), legendrank = 2) %>%
+      add_trace(x = dB1[[nn1]], y = dB1[[nn2]], z = dB1[[nn3]],
+                type = "scatter3d", mode = "markers",
+                marker = list(size = 3.5, symbol = "cross", color = "#E41A1C"),
+                name = paste0(lbl_B, "; S1"), legendrank = 3) %>%
+      add_trace(x = dB2[[nn1]], y = dB2[[nn2]], z = dB2[[nn3]],
+                type = "scatter3d", mode = "markers",
+                marker = list(size = 1.7, symbol = "circle", color = "#E41A1C"),
+                name = paste0(lbl_B, "; S2"), legendrank = 4) %>%
       layout(
         font   = list(size = 12),
         legend = list(font = list(size = 16)),
         scene  = list(
-          xaxis = list(title = "Neuron 95",  range = c(0, 180)),
-          yaxis = list(title = "Neuron 90",  range = c(0, 180)),
-          zaxis = list(title = "Neuron 100", range = c(0, 180)),
+          xaxis = list(title = paste0("Neuron ", n1), range = c(0, 180)),
+          yaxis = list(title = paste0("Neuron ", n2), range = c(0, 180)),
+          zaxis = list(title = paste0("Neuron ", n3), range = c(0, 180)),
           aspectmode = "cube"
         )
       )
@@ -631,39 +624,46 @@ server <- function(input, output, session) {
     req(sim_result())
     lbl_A <- cond_labels[[input$preset]]$A
     lbl_B <- cond_labels[[input$preset]]$B
+    s1 <- min(input$stim1, input$stim2)
+    s2 <- max(input$stim1, input$stim2)
+    n1 <- max(1,   round(s1 - 10))
+    n2 <- max(1,   min(180, round((s1 + s2) / 2)))
+    n3 <- min(180, round(s2 + 10))
+    nn1 <- as.character(n1); nn2 <- as.character(n2); nn3 <- as.character(n3)
     withProgress(message = "Fitting decision boundary...", {
       make_boundary_plot <- function(cond_label, col, cond_key) {
         df_s <- sim_result() %>%
-          filter(Condition == cond_key, Neuron %in% c(95, 90, 100)) %>%
+          filter(Condition == cond_key, Neuron %in% c(n1, n2, n3)) %>%
           pivot_wider(id_cols = c(Stimulus, Trial),
                       names_from = Neuron, values_from = Spikes) %>%
           mutate(stim_bin = as.numeric(as.factor(Stimulus)) - 1)
-        fit <- glm(stim_bin ~ `95` + `90` + `100`, data = df_s, family = binomial)
+        fml <- as.formula(paste("stim_bin ~", paste0("`", c(nn1, nn2, nn3), "`", collapse = " + ")))
+        fit <- glm(fml, data = df_s, family = binomial)
         x_seq <- seq(0, 180, length.out = 20)
-        grid3d <- expand.grid(`95` = x_seq, `90` = x_seq, `100` = x_seq)
+        grid3d <- expand.grid(x_seq, x_seq, x_seq)
+        names(grid3d) <- c(nn1, nn2, nn3)
         grid3d$prob <- predict(fit, newdata = grid3d, type = "response")
         dp <- grid3d %>% filter(abs(prob - 0.5) < 0.07)
         list(df = df_s, dp = dp, col = col, label = cond_label)
       }
       rA <- make_boundary_plot(lbl_A, "#377EB8", "A")
       rB <- make_boundary_plot(lbl_B, "#E41A1C", "B")
-      s1 <- input$stim1; s2 <- input$stim2
       p <- plot_ly()
       for (r in list(rA, rB)) {
+        ds1 <- r$df %>% filter(Stimulus == input$stim1)
+        ds2 <- r$df %>% filter(Stimulus == input$stim2)
         p <- p %>%
-          add_trace(data = r$df %>% filter(Stimulus == s1),
-                    x = ~`95`, y = ~`90`, z = ~`100`,
+          add_trace(x = ds1[[nn1]], y = ds1[[nn2]], z = ds1[[nn3]],
                     type = "scatter3d", mode = "markers",
                     marker = list(size = 3, symbol = "cross", color = r$col),
                     name = paste0(r$label, " S1")) %>%
-          add_trace(data = r$df %>% filter(Stimulus == s2),
-                    x = ~`95`, y = ~`90`, z = ~`100`,
+          add_trace(x = ds2[[nn1]], y = ds2[[nn2]], z = ds2[[nn3]],
                     type = "scatter3d", mode = "markers",
                     marker = list(size = 1, symbol = "circle", color = r$col),
                     name = paste0(r$label, " S2"))
         if (nrow(r$dp) > 0) {
           p <- p %>%
-            add_trace(data = r$dp, x = ~`95`, y = ~`90`, z = ~`100`,
+            add_trace(x = r$dp[[nn1]], y = r$dp[[nn2]], z = r$dp[[nn3]],
                       type = "mesh3d", opacity = 0.3,
                       colorscale = list(c(0, r$col), c(1, r$col)),
                       intensity = rep(0.5, nrow(r$dp)),
@@ -676,9 +676,9 @@ server <- function(input, output, session) {
         font   = list(size = 12),
         legend = list(font = list(size = 16)),
         scene  = list(
-          xaxis = list(title = "Neuron 95",  range = c(0, 180)),
-          yaxis = list(title = "Neuron 90",  range = c(0, 180)),
-          zaxis = list(title = "Neuron 100", range = c(0, 180)),
+          xaxis = list(title = paste0("Neuron ", n1), range = c(0, 180)),
+          yaxis = list(title = paste0("Neuron ", n2), range = c(0, 180)),
+          zaxis = list(title = paste0("Neuron ", n3), range = c(0, 180)),
           aspectmode = "cube"
         )
       )
@@ -689,22 +689,22 @@ server <- function(input, output, session) {
   subtitle_texts <- list(
     manual     = list(density = NULL, boundary = NULL),
     samaha     = list(
-      density  = list(title = "Core features of Samaha effect",
+      density  = list(title = "Explanation for Samaha effect",
                       body  = "Under lower α, increased baseline activity shifts the population response toward greater total spiking, causing higher visibility rating."),
-      boundary = list(title = "Core features of Samaha effect",
+      boundary = list(title = "Explanation for  Samaha effect",
                       body  = "Under lower α, increased baseline activity shifts the population response along the direction parallel to the discrimination hyperplane, leaving orientation discrimination sensitivity unchanged.")
     ),
     subjective = list(
-      density  = list(title = "Core features of Subjective inflation",
-                      body  = "Under low attention, greater spike variability increases the chance of the population response exceeding the detection hyperplane."),
-      boundary = list(title = "Core features of Subjective inflation",
+      density  = list(title = "Explanation for Subjective inflation",
+                      body  = "Under low attention, greater spike variability increases the chance of the population response exceeding the detection criterion"),
+      boundary = list(title = "Explanation for Subjective inflation",
                       body  = "Under low attention, greater spike variability reduces manifold separability.")
     ),
     blindsight = list(
-      density  = list(title = "Core features of Blindsight",
-                      body  = "Under high gain fluctuations, increased gain variability expands the manifold along the total spike axis, impairing yes/no detection sensitivity (i.e., gain fluctuations increase noise along the detection axis)."),
-      boundary = list(title = "Core features of Blindsight",
-                      body  = "Under high gain fluctuations, increased gain variability produces response correlations parallel to the orientation discrimination hyperplane, leaving discrimination sensitivity unaffected (i.e., gain fluctuations induce correlation across the population response. This covariance structure preserves orientation discrimination).")
+      density  = list(title = "Explanation for Blindsight",
+                      body  = "Increased gain fluctuations expand the distribution along the total spike axis, impairing yes/no detection sensitivity."),
+      boundary = list(title = "Explanation for Blindsight",
+                      body  = "Increased gain fluctuations produce response correlations parallel to the orientation discrimination hyperplane, leaving discrimination sensitivity unaffected.")
     )
   )
   
