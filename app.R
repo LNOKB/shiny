@@ -61,21 +61,21 @@ phenomenon_intro_content <- list(
     title = "Samaha effect",
     body  = "Low pre-stimulus α power predicts increased visibility while leaving orientation discrimination sensitivity unchanged.",
     body2 = tagList("Our simulations below demonstrate that increased baseline neural activity associated with low pre-stimulus α power", tags$sup(tags$a(href="#ref9","9")), " is sufficient to account for these observations."),
-    refs  = tagList(tags$sup(tags$a(href="#ref11","11")), ", ", tags$sup(tags$a(href="#ref12","12"))),
+    refs  = tagList(tags$sup(tags$a(href="#ref11","11")), tags$sup(tags$a(href="#ref12","12"))),
     img   = "samaha.png"
   ),
   blindsight = list(
     title = "Blindsight",
     body  = "Lesions in the primary visual cortex impair awareness (yes/no detection sensitivity) while leaving orientation discrimination sensitivity largely intact.",
-    body2 = tagList("Our simulations below demonstrate that elevating neural gain fluctuations following V1 lesions is sufficient to account for these observations."),
-    refs  = tagList(tags$sup(tags$a(href="#ref4","4")), ", ", tags$sup(tags$a(href="#ref5","5"))),
+    body2 = tagList("Our simulations below demonstrate that elevating neural gain fluctuations following V1 lesions is sufficient to account for these observations." , tags$sup(tags$a(href="#ref2","2")), tags$sup(tags$a(href="#ref3","3")), tags$sup(tags$a(href="#ref4","4")), tags$sup(tags$a(href="#ref8","8"))),
+    refs  = tagList(tags$sup(tags$a(href="#ref4","4")), tags$sup(tags$a(href="#ref5","5"))),
     img   = "blindsight.png"
   ),
   subjective = list(
     title = "Subjective inflation",
     body  = "Inattention leads to lower discrimination sensitivity but paradoxically increases subjective awareness.",
     body2 = tagList("Our simulations below demonstrate that increased spike variability by inattention", tags$sup(tags$a(href="#ref10","10")), " is sufficient to account for these observations."),
-    refs  = tagList(tags$sup(tags$a(href="#ref6","6")), ", ", tags$sup(tags$a(href="#ref7","7"))),
+    refs  = tagList(tags$sup(tags$a(href="#ref6","6")), tags$sup(tags$a(href="#ref7","7"))),
     img   = "subjective.png"
   )
 )
@@ -205,13 +205,16 @@ ui <- fluidPage(
             tags$p("Each of neurons has a circular Gaussian orientation tuning curve. The peak response amplitude is determined by the Naka-Rushton contrast-response function:"),
             tags$p(HTML("$$R(C) = R_{\\max} \\cdot \\frac{C^n}{C^n + C_{50}^n}$$")),
             tags$p(HTML("Parameters are set to \\(R_{\\max} = 115\\) spikes/s, \\(C_{50} = 19.3\\%\\), \\(n = 2.9\\), based on physiological measurements in V1."), tags$sup(tags$a(href="#ref1","1"))),
+            tags$hr(),
             tags$p(tags$strong("Baseline activity", ":")),
             tags$p("Baseline activity adds an orientation-independent offset \\(K\\) to all neurons, capturing responses unrelated to the stimulus."),
             tags$p(HTML("$$\\mu_{ij} = R(C) + K$$")),
+            tags$hr(),
+            tags$p(tags$strong("Fano factor", ":")),
+            tags$p(HTML("The slider value modulates the variability of the spikes. This value represents Fano factor when \\(g = 1\\).")),
+            tags$hr(),
             tags$p(tags$strong("Gain fluctuations", ":")),
             tags$p(HTML("On each trial, a single scalar gain \\(g\\) is sampled from a Gamma distribution and applied multiplicatively to \\(\\mu_{ij}\\). The slider value is the parameter controlling the variance of the Gamma distribution. Gain fluctuations introduce trial-by-trial spike count correlation across the population (often conceptualized as noise correlation)."), tags$sup(tags$a(href="#ref2","2")), tags$sup(tags$a(href="#ref3",", 3"))),            tags$p(HTML("$$g \\sim \\text{Gamma}\\!\\left(\\frac{1}{\\sigma_g^2},\\; \\sigma_g^2\\right), \\quad \\mathbb{E}[g] = 1, \\quad \\text{Var}[g] = \\sigma_g^2$$")),
-            tags$p(tags$strong("Fano factor", ":")),
-            tags$p(HTML("When \\(F = 1\\) and \\(g = 1\\), the distribution reduces to Poisson."))
           )),
           fluidRow(
             column(6, plotOutput("g_nr")),
@@ -221,8 +224,13 @@ ui <- fluidPage(
           h4("Trial-by-trial spike distributions"),
           note_panel("note_3d", tagList(
             tags$p("The response space is high-dimensional (180 neurons), but here we visualise three example neurons. Each point is one simulated trial."),
-            tags$p(tags$strong("Gain fluctuations and Fano factor", ":")),
-            tags$p("Both gain fluctuations and Fano Factor increase the variance of individual neurons' spike counts. However, they differ in their effect on the covariance of population responses. Gain fluctuations introduce shared variability across neurons: when Neuron 90 fires more, Neuron 100 tends to fire more as well. Fano factor, in contrast, inflates each neuron's variance independently, leaving the covariance structure unchanged.")
+            tags$p("Our model preserves the full spike count information across trials, allowing the population responses to form", tags$strong("neural manifolds"), "in high-dimensional space. The variance-covariance structure of this manifolds jointly determines sensitivity, uncertainty, and awareness."),
+            tags$p(tags$strong("The effect of baseline activity", ":")),
+            tags$p("Baseline activity shifts the all manifolds along the summed axis(←English不安です！)"),
+            tags$p(tags$strong("The effect of Fano factor", ":")),
+            tags$p("Fano Factor increase the variance of individual neurons' spike counts independently, leaving the covariance structure unchanged"),
+            tags$p(tags$strong("The effect of gain fluctuations", ":")),
+            tags$p("Gain fluctuations both increase the variance and covariance of population responses. They introduce shared variability across neurons: when Neuron 90 fires more, Neuron 100 tends to fire more as well.")
           )),
           plotlyOutput("p_3d")
       ),
@@ -258,8 +266,8 @@ ui <- fluidPage(
                "Goris RL, Movshon JA, Simoncelli EP. Partitioning neuronal variability. ",
                tags$em("Nat Neurosci."), " 2014;17(6):858–865."),
         tags$p(id = "ref3", tags$sup("3"), " ",
-               "Lin IC, Okun M, Carandini M, Harris KD. The Nature of Shared Cortical Variability. ",
-               tags$em("Neuron."), " 2015;87(3):644–656."),
+               "Azzopardi P, and Cowey A. Why is blindsight blind? In ", 
+               tags$em("Out of Mind: Varieties of Unconscious Processes,"), " B. De Gelder, E.H.F. De Haan, and C.A. Heywood, eds. (Oxford University Press), pp. 3–19. 2001."),
         tags$p(id = "ref4", tags$sup("4"), " ",
                "Miyoshi K, and Lau H. A decision-congruent heuristic gives superior metacognitive sensitivity under realistic variance assumptions. ",
                tags$em("Psychol. Rev."), " 2020;127:655–671."),
@@ -552,21 +560,48 @@ server <- function(input, output, session) {
     grid::grid.draw(gt)
   })
   
+  # # ---- Total spike count ----
+  # output$g_density <- renderPlot({
+  #   req(sim_result())
+  #   lbl_A <- cond_labels[[input$preset]]$A
+  #   lbl_B <- cond_labels[[input$preset]]$B
+  #   sim_result() %>%
+  #     group_by(Stimulus, Condition, Trial) %>%
+  #     summarise(Sum_spikes = sum(Spikes), .groups = "drop") %>%
+  #     mutate(Condition = ifelse(Condition == "A", lbl_A, lbl_B)) %>%
+  #     ggplot(aes(x = Sum_spikes, color = Condition, fill = Condition)) +
+  #     geom_density(alpha = 0.2, linewidth = 1) +
+  #     scale_color_manual(values = setNames(c("#377EB8", "#E41A1C"), c(lbl_A, lbl_B))) +
+  #     scale_fill_manual( values = setNames(c("#377EB8", "#E41A1C"), c(lbl_A, lbl_B))) +
+  #     labs(x = "Total spikes", y = "Density") +
+  #     theme_classic(base_size = 20)
+  # })
   # ---- Total spike count ----
   output$g_density <- renderPlot({
     req(sim_result())
     lbl_A <- cond_labels[[input$preset]]$A
     lbl_B <- cond_labels[[input$preset]]$B
-    sim_result() %>%
+    df_density <- sim_result() %>%
       group_by(Stimulus, Condition, Trial) %>%
       summarise(Sum_spikes = sum(Spikes), .groups = "drop") %>%
-      mutate(Condition = ifelse(Condition == "A", lbl_A, lbl_B)) %>%
-      ggplot(aes(x = Sum_spikes, color = Condition, fill = Condition)) +
+      mutate(Condition = ifelse(Condition == "A", lbl_A, lbl_B))
+    
+    g <- ggplot(df_density, aes(x = Sum_spikes, color = Condition, fill = Condition)) +
       geom_density(alpha = 0.2, linewidth = 1) +
       scale_color_manual(values = setNames(c("#377EB8", "#E41A1C"), c(lbl_A, lbl_B))) +
       scale_fill_manual( values = setNames(c("#377EB8", "#E41A1C"), c(lbl_A, lbl_B))) +
       labs(x = "Total spikes", y = "Density") +
       theme_classic(base_size = 20)
+    
+    # Detection criterion line for subjective inflation only
+    if (input$preset == "subjective") {
+      crit <- quantile(df_density$Sum_spikes, 0.65)
+      g <- g + geom_vline(xintercept = crit, linetype = "dashed",
+                          color = "gray30", linewidth = 0.8) +
+        annotate("text", x = crit, y = Inf, label = "Detection criterion",
+                 hjust = -0.05, vjust = 1.5, size = 4, color = "gray30")
+    }
+    g
   })
   
   # ---- 3D scatter ----
