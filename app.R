@@ -70,21 +70,21 @@ phenomenon_intro_content <- list(
   samaha     = list(
     title = "Samaha effect",
     body  = "Low pre-stimulus α power predicts increased visibility while leaving orientation discrimination sensitivity unchanged.",
-    body2 = tagList("Our simulations below demonstrate that increased baseline neural activity associated with low pre-stimulus α power", tags$sup(tags$a(href="#ref9","9")), " is sufficient to account for these observations."),
+    body2 = tagList("Our simulations below demonstrate that assuming increased baseline neural activity associated with low pre-stimulus α power", tags$sup(tags$a(href="#ref9","9")), " is sufficient to account for these observations."),
     refs  = tagList(tags$sup(tags$a(href="#ref11","11")), tags$sup(tags$a(href="#ref12","12"))),
     img   = "samaha.png"
   ),
   blindsight = list(
     title = "Blindsight",
     body  = "Lesions in the primary visual cortex impair awareness (yes/no detection sensitivity) while leaving orientation discrimination sensitivity largely intact.",
-    body2 = tagList("Our simulations below demonstrate that elevating neural gain fluctuations following V1 lesions is sufficient to account for these observations.", tags$sup(tags$a(href="#ref2","2")), tags$sup(tags$a(href="#ref3","3")), tags$sup(tags$a(href="#ref4","4")), tags$sup(tags$a(href="#ref8","8"))),
+    body2 = tagList("Our simulations below demonstrate that assuming elevated neural gain fluctuations following V1 lesions is sufficient to account for these observations.", tags$sup(tags$a(href="#ref2","2")), tags$sup(tags$a(href="#ref3","3")), tags$sup(tags$a(href="#ref4","4")), tags$sup(tags$a(href="#ref8","8"))),
     refs  = tagList(tags$sup(tags$a(href="#ref4","4")), tags$sup(tags$a(href="#ref5","5"))),
     img   = "blindsight.png"
   ),
   subjective = list(
     title = "Subjective inflation",
     body  = "Inattention leads to lower discrimination sensitivity but paradoxically increases subjective awareness.",
-    body2 = tagList("Our simulations below demonstrate that increased spike variability by inattention", tags$sup(tags$a(href="#ref10","10")), " is sufficient to account for these observations."),
+    body2 = tagList("Our simulations below demonstrate that assuming increased spike variability by inattention", tags$sup(tags$a(href="#ref10","10")), " is sufficient to account for these observations."),
     refs  = tagList(tags$sup(tags$a(href="#ref6","6")), tags$sup(tags$a(href="#ref7","7"))),
     img   = "subjective.png"
   )
@@ -161,12 +161,7 @@ ui <- fluidPage(
   ")),
   tags$div(
     style = "padding: 20px 20px 10px 20px;",
-    tags$h2("Neural Response Simulator", style = "margin-bottom: 4px;"),
-    tags$p(
-      "A companion website of ",
-      tags$em("\"Unifying Sensitivity, Uncertainty, and Awareness via Population Covariance Structure\""),
-      style = "color: #666; font-size: 15px; margin-top: 0;"
-    )
+    tags$h2("Neural Response Simulator", style = "margin-bottom: 4px;")
   ),
   sidebarLayout(
     sidebarPanel(
@@ -215,12 +210,12 @@ ui <- fluidPage(
           uiOutput("key_assumption_box"),
           h4("Tuning curves"),
           note_panel("note_tuning", tagList(
-            tags$p("Spike count \\(r_{ij}\\) is drawn from a Negative Binomial distribution:"),
+            tags$p("Spike count for each trial \\(r_{ij}\\) is drawn from a Negative Binomial distribution:"),
             tags$p(HTML("$$r_{ij} \\sim \\text{NegBinom}\\!\\left(\\mathrm{mean} = g\\,\\mu_{ij},\\; \\text{size} = \\frac{g\\,\\mu_{ij}}{F - 1}\\right)$$")),
-            tags$p(HTML("where \\(\\mu_{ij}\\) is a spike count for a neuron tuned to orientation \\(j\\) under a stimulus orientation \\(i\\) ,  \\(g\\) is a multiplicative gain, and \\(F\\) is a Fano Factor. "), tags$sup(tags$a(href="#ref2","2"))),
+            tags$p(HTML("\\(g\\mu_{ij}\\) is a mean spike count for a neuron tuned to orientation \\(j\\), given a stimulus with orientation \\(i\\) , where  \\(g\\) is a multiplicative gain. \\(F\\) represents a Fano Factor. "), tags$sup(tags$a(href="#ref2","2"))),
             tags$hr(),
             tags$p(tags$strong("Stimulus contrast", ":")),
-            tags$p("The model comprises a population of 180 neurons, each selectively tuned to a unique orientation spanning the full range of orientations."),
+            tags$p("The model comprises a population of 180 neurons, each tuned to a distinct orientation ranging from 1° to 180° in 1° steps."),
             tags$p("Each of neurons has a circular Gaussian orientation tuning curve. The peak response amplitude is determined by the Naka-Rushton contrast-response function:"),
             tags$p(HTML("$$R(C) = R_{\\max} \\cdot \\frac{C^n}{C^n + C_{50}^n}$$")),
             tags$p(HTML("Parameters are set to \\(R_{\\max} = 115\\) spikes/s, \\(C_{50} = 19.3\\%\\), \\(n = 2.9\\), based on physiological measurements in V1."), tags$sup(tags$a(href="#ref1","1"))),
@@ -230,7 +225,7 @@ ui <- fluidPage(
             tags$p(HTML("$$\\mu_{ij} = R(C) + K$$")),
             tags$hr(),
             tags$p(tags$strong("Fano factor", ":")),
-            tags$p(HTML("The slider value \\(F\\) modulates the variability of the spikes. This value represents Fano factor when \\(g = 1\\) (i.e., no gain fluctuations).")),
+            tags$p(HTML("The slider value \\(F\\) modulates the variability of the spikes. This value represents Fano factor when \\(g = 1\\) (no gain fluctuations).")),
             tags$hr(),
             tags$p(tags$strong("Gain fluctuations", ":")),
             tags$p(HTML("On each trial, a single scalar gain \\(g\\) is sampled from a Gamma distribution and applied multiplicatively to \\(\\mu_{ij}\\). The slider value corresponds to \\(\\sigma_g\\), which controls the variance of the Gamma distribution (\\(\\text{Var}[g] = \\sigma_g^2\\)). Gain fluctuations introduce trial-by-trial spike count correlation across the population (often conceptualized as noise correlation)."), tags$sup(tags$a(href="#ref2","2")), tags$sup(tags$a(href="#ref3",", 3"))),
@@ -244,13 +239,18 @@ ui <- fluidPage(
           h4("Trial-by-trial spike distributions"),
           note_panel("note_3d", tagList(
             tags$p("The response space is high-dimensional (180 neurons), but here we visualise three example neurons. Each point is one simulated trial."),
-            tags$p("Our model preserves the full spike count information across trials, allowing the population responses to form", tags$strong("neural manifolds"), "in high-dimensional space. The variance-covariance structure of these manifolds jointly determines sensitivity, uncertainty, and awareness."),
+            tags$p("As shown below, our model preserves the full spike count information across trials, allowing the population responses to form", tags$strong("neural manifolds"), "in high-dimensional space. The variance-covariance structure of this manifolds jointly determines sensitivity, uncertainty, and awareness."),
+            tags$hr(),
             tags$p(tags$strong("The effect of baseline activity", ":")),
             tags$p("Baseline activity shifts all manifolds along the summed spike axis."),
+            tags$hr(),
             tags$p(tags$strong("The effect of Fano factor", ":")),
             tags$p("Fano Factor increases the variance of individual neurons' spike counts independently, leaving the covariance structure unchanged."),
+            tags$p("This parameter expands the response distribution isotropically in the 3D space, producing a spherical cloud of population responses."),
+            tags$hr(),
             tags$p(tags$strong("The effect of gain fluctuations", ":")),
-            tags$p("Gain fluctuations both increase the variance and covariance of population responses. They introduce shared variability across neurons: when one neuron fires more, others tend to fire more as well.")
+            tags$p("Gain fluctuations both increase the variance and covariance of population responses. They introduce shared variability across neurons: when one neuron fires more, others tend to fire more as well."),
+            tags$p("This parameter stretches the response distribution anisotropically in the 3D space, producing an elongated ellipsoidal cloud along the shared gain axis.")
           )),
           plotlyOutput("p_3d")
       ),
@@ -638,9 +638,9 @@ server <- function(input, output, session) {
     col_B <- cond_colors[[input$preset]]$B
     s1 <- min(input$stim1, input$stim2)
     s2 <- max(input$stim1, input$stim2)
-    n1 <- max(1,   round(s1 - 10))
+    n1 <- max(1,   round(s1 - 0))
     n2 <- max(1,   min(180, round((s1 + s2) / 2)))
-    n3 <- min(180, round(s2 + 10))
+    n3 <- min(180, round(s2 + 0))
     nn1 <- as.character(n1); nn2 <- as.character(n2); nn3 <- as.character(n3)
     df_3d <- sim_result() %>%
       filter(Neuron %in% c(n1, n2, n3)) %>%
