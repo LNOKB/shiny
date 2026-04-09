@@ -170,7 +170,7 @@ ui <- fluidPage(
                tags$ol(style = "padding-left:16px; margin-top:4px;",
                        tags$li("Select a preset scenario from the dropdown."),
                        tags$li("Click ", tags$strong("Run simulation"), " to generate results."),
-                       tags$li("Adjust sliders if needed (greyed-out sliders are fixed for the selected preset)."),
+                       tags$li("Adjust sliders if needed."),
                        tags$li("Explore the Encoding and Decoding sections below.")
                )
       ),
@@ -187,15 +187,15 @@ ui <- fluidPage(
       hr(),
       uiOutput("label_cond_A"),
       div(id = "wrap_contrast_A", sliderInput("contrast_A", "Stimulus contrast (%)", min = 1,    max = 100, value = 40,   step = 1)),
-      div(id = "wrap_spont_A",    sliderInput("spont_A",    "Baseline activity",     min = 0,    max = 25,  value = 2,    step = 0.5)),
+      div(id = "wrap_spont_A",    sliderInput("spont_A",    "Baseline activity",     min = 0,    max = 25,  value = 0,    step = 0.5)),
       div(id = "wrap_fano_A",     sliderInput("fano_A",     "Fano factor",           min = 1,    max = 5,   value = 1,    step = 0.5)),
-      div(id = "wrap_sigma_g_A",  sliderInput("sigma_g_A",  "Gain fluctuations",     min = 0.01, max = 0.5, value = 0.05, step = 0.01)),
+      div(id = "wrap_sigma_g_A",  sliderInput("sigma_g_A",  "Gain fluctuations",     min = 0.01, max = 0.5, value = 0.01, step = 0.01)),
       hr(),
       uiOutput("label_cond_B"),
       div(id = "wrap_contrast_B", sliderInput("contrast_B", "Stimulus contrast (%)", min = 1,    max = 100, value = 40,   step = 1)),
-      div(id = "wrap_spont_B",    sliderInput("spont_B",    "Baseline activity",     min = 0,    max = 25,  value = 2,    step = 0.5)),
+      div(id = "wrap_spont_B",    sliderInput("spont_B",    "Baseline activity",     min = 0,    max = 25,  value = 0,    step = 0.5)),
       div(id = "wrap_fano_B",     sliderInput("fano_B",     "Fano factor",           min = 1,    max = 10,  value = 1,    step = 0.5)),
-      div(id = "wrap_sigma_g_B",  sliderInput("sigma_g_B",  "Gain fluctuations",     min = 0.01, max = 0.5, value = 0.05, step = 0.01)),
+      div(id = "wrap_sigma_g_B",  sliderInput("sigma_g_B",  "Gain fluctuations",     min = 0.01, max = 0.5, value = 0.01, step = 0.01)),
       hr(),
       actionButton("run", "Run simulation", class = "btn-primary")
     ),
@@ -218,12 +218,12 @@ ui <- fluidPage(
             tags$p("The model comprises a population of 180 neurons, each tuned to a distinct orientation ranging from 1° to 180° in 1° steps."),
             tags$p("Each of neurons has a circular Gaussian orientation tuning curve. The peak response amplitude is determined by the Naka-Rushton contrast-response function:"),
             tags$p(HTML("$$R(C) = R_{\\max} \\cdot \\frac{C^n}{C^n + C_{50}^n}$$")),
-            tags$p(HTML("The Stimulus contrast slider value specifies the parameter \\(C\\) in this function. The other parameters are set to \\(R_{\\max} = 115\\) spikes/s, \\(C_{50} = 19.3\\%\\) and \\(n = 2.9\\), based on physiological measurements in V1."), tags$sup(tags$a(href="#ref1","1"))),
+            tags$p(HTML("The slider value specifies the parameter \\(C\\) in this function. The other parameters are set to \\(R_{\\max} = 115\\) spikes/s, \\(C_{50} = 19.3\\%\\) and \\(n = 2.9\\), based on physiological measurements in V1."), tags$sup(tags$a(href="#ref1","1"))),
             tags$hr(),
             tags$p(tags$strong("Baseline activity", ":")),
             tags$p("\\(\\mu_{ij}\\) is defined as follows:"),
             tags$p(HTML("$$\\mu_{ij} = R(C) + K$$")),
-            tags$p("where Baseline activity slider value gives an orientation-independent offset \\(K\\), representing responses unrelated to the stimulus."),
+            tags$p("where the slider value gives an orientation-independent offset \\(K\\), representing responses unrelated to the stimulus."),
             tags$hr(),
             tags$p(tags$strong("Fano factor", ":")),
             tags$p(HTML("The slider value controlls spike variability through the parameter \\(F\\). This value represents the Fano factor of the defined Negative Binominal distribution when there is no gain fluctuations.")),
@@ -239,19 +239,13 @@ ui <- fluidPage(
           hr(),
           h4("Trial-by-trial spike distributions"),
           note_panel("note_3d", tagList(
-            tags$p("The response space is high-dimensional (180 neurons), but here we visualise three example neurons. Each point is one simulated trial."),
-            tags$p("As shown below, our model preserves the full spike count information across trials, allowing the population responses to form", tags$strong("neural manifolds"), "in high-dimensional space. The variance-covariance structure of this manifolds jointly determines sensitivity, uncertainty, and awareness."),
+            tags$p("Stimulus information is encoded as spike count distributions in 180-dimension neural space. Here only three example neurons are shown for visualization, with each point referring to one simulated trial. The variance-covariance structure of these distributions jointly explains sensitivity, uncertainty, and awareness."),
             tags$hr(),
-            tags$p(tags$strong("The effect of baseline activity", ":")),
-            tags$p("Baseline activity shifts all manifolds along the summed spike axis."),
+            tags$p(tags$strong("Baseline activity"), "parameter \\(K\\) affects all dimensions uniformly, shifting population response distributions along the total spike count axis."),
             tags$hr(),
-            tags$p(tags$strong("The effect of Fano factor", ":")),
-            tags$p("Fano Factor increases the variance of individual neurons' spike counts independently, leaving the covariance structure unchanged."),
-            tags$p("This parameter expands the response distribution isotropically in the 3D space, producing a spherical cloud of population responses."),
+            tags$p(tags$strong("Fano factor"), "parameter \\(F\\) changes the variance of spike distributions, leaving their covariance unchanged."),
             tags$hr(),
-            tags$p(tags$strong("The effect of gain fluctuations", ":")),
-            tags$p("Gain fluctuations both increase the variance and covariance of population responses. They introduce shared variability across neurons: when one neuron fires more, others tend to fire more as well."),
-            tags$p("This parameter stretches the response distribution anisotropically in the 3D space, producing an elongated ellipsoidal cloud along the shared gain axis.")
+            tags$p(tags$strong("Gain fluctuations"), "parameter \\(\\sigma_g\\) governs both the variance and covariance of population responses. The covariance represents shared variability across neurons: when one neuron fires more, others tend to fire more as well.")
           )),
           plotlyOutput("p_3d")
       ),
@@ -260,15 +254,14 @@ ui <- fluidPage(
           h4("Decoding / Read-out", style = "color:#17A589; margin-top:0;"),
           h4("Total spike count"),
           note_panel("note_density", tagList(
-            tags$p("A total spike summed across all 180 neurons is computed for each trial. This scalar summary projects the 180-dimensional population response onto a single axis — the awareness read-out axis. According to the proposed framework, the probability of a stimulus being consciously detected corresponds to the density of this total spike count distribution over the detection threshold. Visibility can also be explained by setting rating criteria along this axis."),
-            tags$p("Since total spike count is agnostic of activity patterns of individual neurons, awareness can be separated from discrimination sensitivity and uncertainty.")
+            tags$p("We assume that the total spike count summed across all 180 neurons underlies visual awareness. Visual detection can be formalized by placing a criterion on this axis, and graded visibility ratings can be modeled by setting multiple criteria.")
           )),
           plotOutput("g_density"),
           uiOutput("text_density"),
           hr(),
           h4("Discrimination boundary"),
           note_panel("note_boundary", tagList(
-            tags$p("Within this 3D space, the mesh surface shows the orientation discrimination hyperplane that best separates S1 from S2."),
+            tags$p("The mesh surface shows the orientation discrimination hyperplane that best separates S1 from S2 within this 3D space."),
             tags$p("Decision uncertainty corresponds to the distance of each spike point from this discrimination boundary."),
             tags$p("In this manner, sensitivity, uncertainty and awareness can be read out as separate constructs.")
           )),
@@ -771,7 +764,7 @@ server <- function(input, output, session) {
     ),
     blindsight = list(
       density  = list(title = "Explanation for Blindsight",
-                      body  = "Increased gain fluctuations expand the distribution along the total spike axis, impairing yes/no detection sensitivity."),
+                      body  = "Increased gain fluctuations expand the distributions along the total spike axis, impairing yes/no detection sensitivity."),
       boundary = list(title = "Explanation for Blindsight",
                       body  = "Increased gain fluctuations produce response correlations parallel to the orientation discrimination hyperplane, leaving discrimination sensitivity unaffected.")
     )
