@@ -54,6 +54,16 @@ cond_labels <- list(
   subjective = list(A = "Low attention", B = "High attention")
 )
 
+# Condition colors per preset
+# blindsight: A (High gain fluctuations) = red, B (Low gain fluctuations) = blue
+# all others: A = blue, B = red
+cond_colors <- list(
+  manual     = list(A = "#377EB8", B = "#E41A1C"),
+  samaha     = list(A = "#377EB8", B = "#E41A1C"),
+  blindsight = list(A = "#E41A1C", B = "#377EB8"),
+  subjective = list(A = "#377EB8", B = "#E41A1C")
+)
+
 # Phenomenon intro per preset
 phenomenon_intro_content <- list(
   manual     = NULL,
@@ -67,7 +77,7 @@ phenomenon_intro_content <- list(
   blindsight = list(
     title = "Blindsight",
     body  = "Lesions in the primary visual cortex impair awareness (yes/no detection sensitivity) while leaving orientation discrimination sensitivity largely intact.",
-    body2 = tagList("Our simulations below demonstrate that elevating neural gain fluctuations following V1 lesions is sufficient to account for these observations." , tags$sup(tags$a(href="#ref2","2")), tags$sup(tags$a(href="#ref3","3")), tags$sup(tags$a(href="#ref4","4")), tags$sup(tags$a(href="#ref8","8"))),
+    body2 = tagList("Our simulations below demonstrate that elevating neural gain fluctuations following V1 lesions is sufficient to account for these observations.", tags$sup(tags$a(href="#ref2","2")), tags$sup(tags$a(href="#ref3","3")), tags$sup(tags$a(href="#ref4","4")), tags$sup(tags$a(href="#ref8","8"))),
     refs  = tagList(tags$sup(tags$a(href="#ref4","4")), tags$sup(tags$a(href="#ref5","5"))),
     img   = "blindsight.png"
   ),
@@ -198,7 +208,7 @@ ui <- fluidPage(
           note_panel("note_tuning", tagList(
             tags$p("Spike count \\(r_{ij}\\) is drawn from a Negative Binomial distribution:"),
             tags$p(HTML("$$r_{ij} \\sim \\text{NegBinom}\\!\\left(mean = g\\,\\mu_{ij},\\; \\text{size} = \\frac{g\\,\\mu_{ij}}{F - 1}\\right)$$")),
-            tags$p(HTML("where \\(\\mu_{ij}\\) is a spike count for a neuron tuned to orientation \\(j\\) under a stimulus orientation \\(i\\) ,  \\(g\\) is a multiplicative gain, and \\(F\\) is a Fano Factor. "), tags$sup(tags$a(href="#ref2","2"))),            
+            tags$p(HTML("where \\(\\mu_{ij}\\) is a spike count for a neuron tuned to orientation \\(j\\) under a stimulus orientation \\(i\\) ,  \\(g\\) is a multiplicative gain, and \\(F\\) is a Fano Factor. "), tags$sup(tags$a(href="#ref2","2"))),
             tags$hr(),
             tags$p(tags$strong("Stimulus contrast", ":")),
             tags$p("The model comprises a population of 180 neurons, each selectively tuned to a unique orientation spanning the full range of orientations."),
@@ -214,7 +224,8 @@ ui <- fluidPage(
             tags$p(HTML("The slider value modulates the variability of the spikes. This value represents Fano factor when \\(g = 1\\).")),
             tags$hr(),
             tags$p(tags$strong("Gain fluctuations", ":")),
-            tags$p(HTML("On each trial, a single scalar gain \\(g\\) is sampled from a Gamma distribution and applied multiplicatively to \\(\\mu_{ij}\\). The slider value is the parameter controlling the variance of the Gamma distribution. Gain fluctuations introduce trial-by-trial spike count correlation across the population (often conceptualized as noise correlation)."), tags$sup(tags$a(href="#ref2","2")), tags$sup(tags$a(href="#ref3",", 3"))),            tags$p(HTML("$$g \\sim \\text{Gamma}\\!\\left(\\frac{1}{\\sigma_g^2},\\; \\sigma_g^2\\right), \\quad \\mathbb{E}[g] = 1, \\quad \\text{Var}[g] = \\sigma_g^2$$")),
+            tags$p(HTML("On each trial, a single scalar gain \\(g\\) is sampled from a Gamma distribution and applied multiplicatively to \\(\\mu_{ij}\\). The slider value is the parameter controlling the variance of the Gamma distribution. Gain fluctuations introduce trial-by-trial spike count correlation across the population (often conceptualized as noise correlation)."), tags$sup(tags$a(href="#ref2","2")), tags$sup(tags$a(href="#ref3",", 3"))),
+            tags$p(HTML("$$g \\sim \\text{Gamma}\\!\\left(\\frac{1}{\\sigma_g^2},\\; \\sigma_g^2\\right), \\quad \\mathbb{E}[g] = 1, \\quad \\text{Var}[g] = \\sigma_g^2$$"))
           )),
           fluidRow(
             column(6, plotOutput("g_nr")),
@@ -226,11 +237,11 @@ ui <- fluidPage(
             tags$p("The response space is high-dimensional (180 neurons), but here we visualise three example neurons. Each point is one simulated trial."),
             tags$p("Our model preserves the full spike count information across trials, allowing the population responses to form", tags$strong("neural manifolds"), "in high-dimensional space. The variance-covariance structure of this manifolds jointly determines sensitivity, uncertainty, and awareness."),
             tags$p(tags$strong("The effect of baseline activity", ":")),
-            tags$p("Baseline activity shifts the all manifolds along the summed axis(←English不安です！)"),
+            tags$p("Baseline activity shifts all manifolds along the summed spike axis."),
             tags$p(tags$strong("The effect of Fano factor", ":")),
-            tags$p("Fano Factor increase the variance of individual neurons' spike counts independently, leaving the covariance structure unchanged"),
+            tags$p("Fano Factor increases the variance of individual neurons' spike counts independently, leaving the covariance structure unchanged."),
             tags$p(tags$strong("The effect of gain fluctuations", ":")),
-            tags$p("Gain fluctuations both increase the variance and covariance of population responses. They introduce shared variability across neurons: when Neuron 90 fires more, Neuron 100 tends to fire more as well.")
+            tags$p("Gain fluctuations both increase the variance and covariance of population responses. They introduce shared variability across neurons: when one neuron fires more, others tend to fire more as well.")
           )),
           plotlyOutput("p_3d")
       ),
@@ -239,7 +250,7 @@ ui <- fluidPage(
           h4("Decoding / Read-out", style = "color:#17A589; margin-top:0;"),
           h4("Total spike count"),
           note_panel("note_density", tagList(
-            tags$p("A total spike summed across all 180 neurons is computed for each trial. This scalar summary projects the 180-dimensional population response onto a single axis — the awareness read-out axis. According to the proposed framework, the probability of a stimulus being consciously detected corresponds to the density of this total spike count distribution over the detection threshold. Visiblity can also be explained by setting rating criteria along this axis."),
+            tags$p("A total spike summed across all 180 neurons is computed for each trial. This scalar summary projects the 180-dimensional population response onto a single axis — the awareness read-out axis. According to the proposed framework, the probability of a stimulus being consciously detected corresponds to the density of this total spike count distribution over the detection threshold. Visibility can also be explained by setting rating criteria along this axis."),
             tags$p("Since total spike count is agnostic of activity patterns of individual neurons, awareness can be separated from discrimination sensitivity and uncertainty.")
           )),
           plotOutput("g_density"),
@@ -247,8 +258,8 @@ ui <- fluidPage(
           hr(),
           h4("Discrimination boundary"),
           note_panel("note_boundary", tagList(
-            tags$p("Within this 3D space, the mech surface shows orientation discrimination hyperplane that best separates S1 from S2."),
-            tags$p("Decision uncertainty corresponds to the distance of each spike point from the this discrimination boundary."),
+            tags$p("Within this 3D space, the mesh surface shows the orientation discrimination hyperplane that best separates S1 from S2."),
+            tags$p("Decision uncertainty corresponds to the distance of each spike point from this discrimination boundary."),
             tags$p("In this manner, sensitivity, uncertainty and awareness can be read out as separate constructs.")
           )),
           plotlyOutput("p_boundary"),
@@ -266,7 +277,7 @@ ui <- fluidPage(
                "Goris RL, Movshon JA, Simoncelli EP. Partitioning neuronal variability. ",
                tags$em("Nat Neurosci."), " 2014;17(6):858–865."),
         tags$p(id = "ref3", tags$sup("3"), " ",
-               "Azzopardi P, and Cowey A. Why is blindsight blind? In ", 
+               "Azzopardi P, and Cowey A. Why is blindsight blind? In ",
                tags$em("Out of Mind: Varieties of Unconscious Processes,"), " B. De Gelder, E.H.F. De Haan, and C.A. Heywood, eds. (Oxford University Press), pp. 3–19. 2001."),
         tags$p(id = "ref4", tags$sup("4"), " ",
                "Miyoshi K, and Lau H. A decision-congruent heuristic gives superior metacognitive sensitivity under realistic variance assumptions. ",
@@ -338,11 +349,13 @@ server <- function(input, output, session) {
   # ---- Condition labels ----
   output$label_cond_A <- renderUI({
     lbl <- cond_labels[[input$preset]]$A
-    h5(lbl, style = "color:#377EB8; font-weight:bold;")
+    col <- cond_colors[[input$preset]]$A
+    h5(lbl, style = paste0("color:", col, "; font-weight:bold;"))
   })
   output$label_cond_B <- renderUI({
     lbl <- cond_labels[[input$preset]]$B
-    h5(lbl, style = "color:#E41A1C; font-weight:bold;")
+    col <- cond_colors[[input$preset]]$B
+    h5(lbl, style = paste0("color:", col, "; font-weight:bold;"))
   })
   
   # ---- Preset: update sliders, enable/disable ----
@@ -440,6 +453,8 @@ server <- function(input, output, session) {
     cB_scale <- input$contrast_B / 100
     lbl_A <- cond_labels[[input$preset]]$A
     lbl_B <- cond_labels[[input$preset]]$B
+    col_A <- cond_colors[[input$preset]]$A
+    col_B <- cond_colors[[input$preset]]$B
     panels <- list(
       list(theta = input$stim1, cs = cA_scale, px = 1, py = 2),
       list(theta = input$stim2, cs = cA_scale, px = 2, py = 2),
@@ -458,7 +473,7 @@ server <- function(input, output, session) {
     )
     cond_labels_df <- data.frame(
       x_off = c(1.25, 1.25), y_off = c(3.7, 1.2),
-      label = c(lbl_A, lbl_B), col = c("#377EB8", "#E41A1C")
+      label = c(lbl_A, lbl_B), col = c(col_A, col_B)
     )
     ggplot(df_all, aes(x = x_off, y = y_off, fill = val)) +
       geom_raster(interpolate = TRUE) +
@@ -483,8 +498,10 @@ server <- function(input, output, session) {
                      Max_firing = Rmax * contrast_seq^n_nr / (contrast_seq^n_nr + C50^n_nr))
     cA <- input$contrast_A; yA <- Rmax * cA^n_nr / (cA^n_nr + C50^n_nr)
     cB <- input$contrast_B; yB <- Rmax * cB^n_nr / (cB^n_nr + C50^n_nr)
+    col_A <- cond_colors[[input$preset]]$A
+    col_B <- cond_colors[[input$preset]]$B
     pts <- data.frame(x = c(cA, cB), y = c(yA, yB),
-                      label = c("A", "B"), col = c("#377EB8", "#E41A1C"))
+                      label = c("A", "B"), col = c(col_A, col_B))
     g <- ggplot(nr, aes(x = Contrast, y = Max_firing)) +
       geom_line(linewidth = 0.7) +
       geom_point(data = pts, aes(x = x, y = y, color = col), size = 3) +
@@ -517,6 +534,8 @@ server <- function(input, output, session) {
     neurons_show <- seq(1, n_neurons, by = 18)
     lbl_A <- cond_labels[[input$preset]]$A
     lbl_B <- cond_labels[[input$preset]]$B
+    col_A <- cond_colors[[input$preset]]$A
+    col_B <- cond_colors[[input$preset]]$B
     make_tc_df <- function(max_fr, spont, cond_label) {
       tc <- matrix(0, nrow = n_neurons, ncol = length(orientations))
       for (i in 1:n_neurons) {
@@ -536,8 +555,9 @@ server <- function(input, output, session) {
     df_all <- rbind(
       make_tc_df(max_fr_A, input$spont_A, lbl_A),
       make_tc_df(max_fr_B, input$spont_B, lbl_B)
-    ) %>% mutate(Condition = factor(Condition, levels = c(lbl_A, lbl_B)))
-    strip_colors <- setNames(c("#377EB8", "#E41A1C"), c(lbl_A, lbl_B))
+    ) %>% mutate(Condition = factor(Condition,
+                                    levels = if (input$preset == "blindsight") c(lbl_B, lbl_A) else c(lbl_A, lbl_B)))
+    strip_colors <- setNames(c(col_A, col_B), c(lbl_A, lbl_B))
     g <- ggplot(df_all, aes(x = Orientation, y = FiringRate, color = Color, group = Neuron)) +
       geom_line() +
       scale_color_identity() +
@@ -560,36 +580,24 @@ server <- function(input, output, session) {
     grid::grid.draw(gt)
   })
   
-  # # ---- Total spike count ----
-  # output$g_density <- renderPlot({
-  #   req(sim_result())
-  #   lbl_A <- cond_labels[[input$preset]]$A
-  #   lbl_B <- cond_labels[[input$preset]]$B
-  #   sim_result() %>%
-  #     group_by(Stimulus, Condition, Trial) %>%
-  #     summarise(Sum_spikes = sum(Spikes), .groups = "drop") %>%
-  #     mutate(Condition = ifelse(Condition == "A", lbl_A, lbl_B)) %>%
-  #     ggplot(aes(x = Sum_spikes, color = Condition, fill = Condition)) +
-  #     geom_density(alpha = 0.2, linewidth = 1) +
-  #     scale_color_manual(values = setNames(c("#377EB8", "#E41A1C"), c(lbl_A, lbl_B))) +
-  #     scale_fill_manual( values = setNames(c("#377EB8", "#E41A1C"), c(lbl_A, lbl_B))) +
-  #     labs(x = "Total spikes", y = "Density") +
-  #     theme_classic(base_size = 20)
-  # })
   # ---- Total spike count ----
   output$g_density <- renderPlot({
     req(sim_result())
     lbl_A <- cond_labels[[input$preset]]$A
     lbl_B <- cond_labels[[input$preset]]$B
+    col_A <- cond_colors[[input$preset]]$A
+    col_B <- cond_colors[[input$preset]]$B
     df_density <- sim_result() %>%
       group_by(Stimulus, Condition, Trial) %>%
       summarise(Sum_spikes = sum(Spikes), .groups = "drop") %>%
-      mutate(Condition = ifelse(Condition == "A", lbl_A, lbl_B))
+      mutate(Condition = ifelse(Condition == "A", lbl_A, lbl_B)) %>%
+      mutate(Condition = factor(Condition,
+                                levels = if (input$preset == "blindsight") c(lbl_B, lbl_A) else c(lbl_A, lbl_B)))
     
     g <- ggplot(df_density, aes(x = Sum_spikes, color = Condition, fill = Condition)) +
       geom_density(alpha = 0.2, linewidth = 1) +
-      scale_color_manual(values = setNames(c("#377EB8", "#E41A1C"), c(lbl_A, lbl_B))) +
-      scale_fill_manual( values = setNames(c("#377EB8", "#E41A1C"), c(lbl_A, lbl_B))) +
+      scale_color_manual(values = setNames(c(col_A, col_B), c(lbl_A, lbl_B))) +
+      scale_fill_manual( values = setNames(c(col_A, col_B), c(lbl_A, lbl_B))) +
       labs(x = "Total spikes", y = "Density") +
       theme_classic(base_size = 20)
     
@@ -609,6 +617,8 @@ server <- function(input, output, session) {
     req(sim_result())
     lbl_A <- cond_labels[[input$preset]]$A
     lbl_B <- cond_labels[[input$preset]]$B
+    col_A <- cond_colors[[input$preset]]$A
+    col_B <- cond_colors[[input$preset]]$B
     s1 <- min(input$stim1, input$stim2)
     s2 <- max(input$stim1, input$stim2)
     n1 <- max(1,   round(s1 - 10))
@@ -619,30 +629,31 @@ server <- function(input, output, session) {
       filter(Neuron %in% c(n1, n2, n3)) %>%
       pivot_wider(id_cols = c(Condition, Stimulus, Trial),
                   names_from = Neuron, values_from = Spikes)
-    get_xyz <- function(df_sub) list(
-      x = df_sub[[nn1]], y = df_sub[[nn2]], z = df_sub[[nn3]]
-    )
     dA1 <- df_3d %>% filter(Condition == "A", Stimulus == input$stim1)
     dA2 <- df_3d %>% filter(Condition == "A", Stimulus == input$stim2)
     dB1 <- df_3d %>% filter(Condition == "B", Stimulus == input$stim1)
     dB2 <- df_3d %>% filter(Condition == "B", Stimulus == input$stim2)
+    rkA1 <- if (input$preset == "blindsight") 3 else 1
+    rkA2 <- if (input$preset == "blindsight") 4 else 2
+    rkB1 <- if (input$preset == "blindsight") 1 else 3
+    rkB2 <- if (input$preset == "blindsight") 2 else 4
     plot_ly() %>%
       add_trace(x = dA1[[nn1]], y = dA1[[nn2]], z = dA1[[nn3]],
                 type = "scatter3d", mode = "markers",
-                marker = list(size = 3.5, symbol = "cross", color = "#377EB8"),
-                name = paste0(lbl_A, "; S1"), legendrank = 1) %>%
+                marker = list(size = 3.5, symbol = "cross", color = col_A),
+                name = paste0(lbl_A, "; S1"), legendrank = rkA1) %>%
       add_trace(x = dA2[[nn1]], y = dA2[[nn2]], z = dA2[[nn3]],
                 type = "scatter3d", mode = "markers",
-                marker = list(size = 1.7, symbol = "circle", color = "#377EB8"),
-                name = paste0(lbl_A, "; S2"), legendrank = 2) %>%
+                marker = list(size = 1.7, symbol = "circle", color = col_A),
+                name = paste0(lbl_A, "; S2"), legendrank = rkA2) %>%
       add_trace(x = dB1[[nn1]], y = dB1[[nn2]], z = dB1[[nn3]],
                 type = "scatter3d", mode = "markers",
-                marker = list(size = 3.5, symbol = "cross", color = "#E41A1C"),
-                name = paste0(lbl_B, "; S1"), legendrank = 3) %>%
+                marker = list(size = 3.5, symbol = "cross", color = col_B),
+                name = paste0(lbl_B, "; S1"), legendrank = rkB1) %>%
       add_trace(x = dB2[[nn1]], y = dB2[[nn2]], z = dB2[[nn3]],
                 type = "scatter3d", mode = "markers",
-                marker = list(size = 1.7, symbol = "circle", color = "#E41A1C"),
-                name = paste0(lbl_B, "; S2"), legendrank = 4) %>%
+                marker = list(size = 1.7, symbol = "circle", color = col_B),
+                name = paste0(lbl_B, "; S2"), legendrank = rkB2) %>%
       layout(
         font   = list(size = 12),
         legend = list(font = list(size = 16)),
@@ -660,6 +671,8 @@ server <- function(input, output, session) {
     req(sim_result())
     lbl_A <- cond_labels[[input$preset]]$A
     lbl_B <- cond_labels[[input$preset]]$B
+    col_A <- cond_colors[[input$preset]]$A
+    col_B <- cond_colors[[input$preset]]$B
     s1 <- min(input$stim1, input$stim2)
     s2 <- max(input$stim1, input$stim2)
     n1 <- max(1,   round(s1 - 10))
@@ -682,10 +695,12 @@ server <- function(input, output, session) {
         dp <- grid3d %>% filter(abs(prob - 0.5) < 0.07)
         list(df = df_s, dp = dp, col = col, label = cond_label)
       }
-      rA <- make_boundary_plot(lbl_A, "#377EB8", "A")
-      rB <- make_boundary_plot(lbl_B, "#E41A1C", "B")
+      rA <- make_boundary_plot(lbl_A, col_A, "A")
+      rB <- make_boundary_plot(lbl_B, col_B, "B")
+      # blindsightのときはB（Low）を先に追加して凡例の上に表示
+      trace_order <- if (input$preset == "blindsight") list(rB, rA) else list(rA, rB)
       p <- plot_ly()
-      for (r in list(rA, rB)) {
+      for (r in trace_order) {
         ds1 <- r$df %>% filter(Stimulus == input$stim1)
         ds2 <- r$df %>% filter(Stimulus == input$stim2)
         p <- p %>%
@@ -727,12 +742,12 @@ server <- function(input, output, session) {
     samaha     = list(
       density  = list(title = "Explanation for Samaha effect",
                       body  = "Under lower α, increased baseline activity shifts the population response toward greater total spiking, causing higher visibility rating."),
-      boundary = list(title = "Explanation for  Samaha effect",
+      boundary = list(title = "Explanation for Samaha effect",
                       body  = "Under lower α, increased baseline activity shifts the population response along the direction parallel to the discrimination hyperplane, leaving orientation discrimination sensitivity unchanged.")
     ),
     subjective = list(
       density  = list(title = "Explanation for Subjective inflation",
-                      body  = "Under low attention, greater spike variability increases the chance of the population response exceeding the detection criterion"),
+                      body  = "Under low attention, greater spike variability increases the chance of the population response exceeding the detection criterion."),
       boundary = list(title = "Explanation for Subjective inflation",
                       body  = "Under low attention, greater spike variability reduces manifold separability.")
     ),
