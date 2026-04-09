@@ -159,6 +159,15 @@ ui <- fluidPage(
       }
     });
   ")),
+  tags$div(
+    style = "padding: 20px 20px 10px 20px;",
+    tags$h2("Neural Response Simulator", style = "margin-bottom: 4px;"),
+    tags$p(
+      "A companion website of ",
+      tags$em("\"Unifying Sensitivity, Uncertainty, and Awareness via Population Covariance Structure\""),
+      style = "color: #666; font-size: 15px; margin-top: 0;"
+    )
+  ),
   sidebarLayout(
     sidebarPanel(
       tags$div(class = "how-to-use-box",
@@ -177,21 +186,21 @@ ui <- fluidPage(
                               "Blindsight"           = "blindsight",
                               "Subjective inflation" = "subjective")),
       hr(),
-      sliderInput("stim1",    "Stimulus 1 orientation (°)", min = 1, max = 180, value = 90,  step = 1),
-      sliderInput("stim2",    "Stimulus 2 orientation (°)", min = 1, max = 180, value = 100, step = 1),
+      div(id = "wrap_stim1", sliderInput("stim1", "Stimulus 1 orientation (°)", min = 1, max = 180, value = 90,  step = 1)),
+      div(id = "wrap_stim2", sliderInput("stim2", "Stimulus 2 orientation (°)", min = 1, max = 180, value = 100, step = 1)),
       sliderInput("n_trials", "Number of trials", min = 50, max = 500, value = 100, step = 50),
       hr(),
       uiOutput("label_cond_A"),
       div(id = "wrap_contrast_A", sliderInput("contrast_A", "Stimulus contrast (%)", min = 1,    max = 100, value = 40,   step = 1)),
-      div(id = "wrap_sigma_g_A",  sliderInput("sigma_g_A",  "Gain fluctuations",     min = 0.01, max = 0.5, value = 0.05, step = 0.01)),
       div(id = "wrap_spont_A",    sliderInput("spont_A",    "Baseline activity",     min = 0,    max = 25,  value = 2,    step = 0.5)),
       div(id = "wrap_fano_A",     sliderInput("fano_A",     "Fano factor",           min = 1,    max = 5,   value = 1,    step = 0.5)),
+      div(id = "wrap_sigma_g_A",  sliderInput("sigma_g_A",  "Gain fluctuations",     min = 0.01, max = 0.5, value = 0.05, step = 0.01)),
       hr(),
       uiOutput("label_cond_B"),
       div(id = "wrap_contrast_B", sliderInput("contrast_B", "Stimulus contrast (%)", min = 1,    max = 100, value = 40,   step = 1)),
-      div(id = "wrap_sigma_g_B",  sliderInput("sigma_g_B",  "Gain fluctuations",     min = 0.01, max = 0.5, value = 0.05, step = 0.01)),
       div(id = "wrap_spont_B",    sliderInput("spont_B",    "Baseline activity",     min = 0,    max = 25,  value = 2,    step = 0.5)),
       div(id = "wrap_fano_B",     sliderInput("fano_B",     "Fano factor",           min = 1,    max = 10,  value = 1,    step = 0.5)),
+      div(id = "wrap_sigma_g_B",  sliderInput("sigma_g_B",  "Gain fluctuations",     min = 0.01, max = 0.5, value = 0.05, step = 0.01)),
       hr(),
       actionButton("run", "Run simulation", class = "btn-primary")
     ),
@@ -207,7 +216,7 @@ ui <- fluidPage(
           h4("Tuning curves"),
           note_panel("note_tuning", tagList(
             tags$p("Spike count \\(r_{ij}\\) is drawn from a Negative Binomial distribution:"),
-            tags$p(HTML("$$r_{ij} \\sim \\text{NegBinom}\\!\\left(mean = g\\,\\mu_{ij},\\; \\text{size} = \\frac{g\\,\\mu_{ij}}{F - 1}\\right)$$")),
+            tags$p(HTML("$$r_{ij} \\sim \\text{NegBinom}\\!\\left(\\mathrm{mean} = g\\,\\mu_{ij},\\; \\text{size} = \\frac{g\\,\\mu_{ij}}{F - 1}\\right)$$")),
             tags$p(HTML("where \\(\\mu_{ij}\\) is a spike count for a neuron tuned to orientation \\(j\\) under a stimulus orientation \\(i\\) ,  \\(g\\) is a multiplicative gain, and \\(F\\) is a Fano Factor. "), tags$sup(tags$a(href="#ref2","2"))),
             tags$hr(),
             tags$p(tags$strong("Stimulus contrast", ":")),
@@ -221,10 +230,10 @@ ui <- fluidPage(
             tags$p(HTML("$$\\mu_{ij} = R(C) + K$$")),
             tags$hr(),
             tags$p(tags$strong("Fano factor", ":")),
-            tags$p(HTML("The slider value modulates the variability of the spikes. This value represents Fano factor when \\(g = 1\\).")),
+            tags$p(HTML("The slider value \\(F\\) modulates the variability of the spikes. This value represents Fano factor when \\(g = 1\\) (i.e., no gain fluctuations).")),
             tags$hr(),
             tags$p(tags$strong("Gain fluctuations", ":")),
-            tags$p(HTML("On each trial, a single scalar gain \\(g\\) is sampled from a Gamma distribution and applied multiplicatively to \\(\\mu_{ij}\\). The slider value is the parameter controlling the variance of the Gamma distribution. Gain fluctuations introduce trial-by-trial spike count correlation across the population (often conceptualized as noise correlation)."), tags$sup(tags$a(href="#ref2","2")), tags$sup(tags$a(href="#ref3",", 3"))),
+            tags$p(HTML("On each trial, a single scalar gain \\(g\\) is sampled from a Gamma distribution and applied multiplicatively to \\(\\mu_{ij}\\). The slider value corresponds to \\(\\sigma_g\\), which controls the variance of the Gamma distribution (\\(\\text{Var}[g] = \\sigma_g^2\\)). Gain fluctuations introduce trial-by-trial spike count correlation across the population (often conceptualized as noise correlation)."), tags$sup(tags$a(href="#ref2","2")), tags$sup(tags$a(href="#ref3",", 3"))),
             tags$p(HTML("$$g \\sim \\text{Gamma}\\!\\left(\\frac{1}{\\sigma_g^2},\\; \\sigma_g^2\\right), \\quad \\mathbb{E}[g] = 1, \\quad \\text{Var}[g] = \\sigma_g^2$$"))
           )),
           fluidRow(
@@ -235,7 +244,7 @@ ui <- fluidPage(
           h4("Trial-by-trial spike distributions"),
           note_panel("note_3d", tagList(
             tags$p("The response space is high-dimensional (180 neurons), but here we visualise three example neurons. Each point is one simulated trial."),
-            tags$p("Our model preserves the full spike count information across trials, allowing the population responses to form", tags$strong("neural manifolds"), "in high-dimensional space. The variance-covariance structure of this manifolds jointly determines sensitivity, uncertainty, and awareness."),
+            tags$p("Our model preserves the full spike count information across trials, allowing the population responses to form", tags$strong("neural manifolds"), "in high-dimensional space. The variance-covariance structure of these manifolds jointly determines sensitivity, uncertainty, and awareness."),
             tags$p(tags$strong("The effect of baseline activity", ":")),
             tags$p("Baseline activity shifts all manifolds along the summed spike axis."),
             tags$p(tags$strong("The effect of Fano factor", ":")),
@@ -374,6 +383,14 @@ server <- function(input, output, session) {
       wrap_id <- paste0("wrap_", sl)
       if (sl %in% active) removeClass(wrap_id, "slider-disabled")
       else                 addClass(wrap_id,    "slider-disabled")
+    }
+    # Disable stimulus orientation sliders for non-manual presets
+    if (input$preset == "manual") {
+      removeClass("wrap_stim1", "slider-disabled")
+      removeClass("wrap_stim2", "slider-disabled")
+    } else {
+      addClass("wrap_stim1", "slider-disabled")
+      addClass("wrap_stim2", "slider-disabled")
     }
   })
   
