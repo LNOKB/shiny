@@ -55,8 +55,6 @@ cond_labels <- list(
 )
 
 # Condition colors per preset
-# blindsight: A (High gain fluctuations) = red, B (Low gain fluctuations) = blue
-# all others: A = blue, B = red
 cond_colors <- list(
   manual     = list(A = "#377EB8", B = "#E41A1C"),
   samaha     = list(A = "#377EB8", B = "#E41A1C"),
@@ -64,28 +62,32 @@ cond_colors <- list(
   subjective = list(A = "#377EB8", B = "#E41A1C")
 )
 
-# Phenomenon intro per preset
+# Reference numbering (in order of appearance on page):
+# 1=Goris, 2=Albrecht, 3=Azzopardi, 4=Miyoshi, 5=Phillips,
+# 6=Cohen, 7=Mitchell2007, 8=Samaha, 9=Iemi, 10=Mitchell2009,
+# 11=Rahnev, 12=Okubo
+
 phenomenon_intro_content <- list(
   manual     = NULL,
   samaha     = list(
     title = "Samaha effect",
     body  = "Low pre-stimulus α power predicts increased visibility while leaving orientation discrimination sensitivity unchanged.",
-    body2 = tagList("Our simulations below demonstrate that assuming increased baseline neural activity associated with low pre-stimulus α power", tags$sup(tags$a(href="#ref9","9")), " effectively accounts for these observations."),
-    refs  = tagList(tags$sup(tags$a(href="#ref11","11")), tags$sup(tags$a(href="#ref12","12"))),
+    body2 = tagList("Our simulations below demonstrate that assuming increased baseline neural activity associated with low pre-stimulus α power", tags$sup(tags$a(href="#ref7","7")), " effectively accounts for these observations."),
+    refs  = tagList(tags$sup(tags$a(href="#ref8","8")), tags$sup(tags$a(href="#ref9","9"))),
     img   = "samaha.png"
   ),
   blindsight = list(
     title = "Blindsight",
     body  = "Lesions in the primary visual cortex impair awareness (yes/no detection sensitivity) while leaving orientation discrimination sensitivity largely intact.",
-    body2 = tagList("Our simulations below demonstrate that assuming elevated neural gain fluctuations following V1 lesions effectively accounts for these observations.", tags$sup(tags$a(href="#ref2","2")), tags$sup(tags$a(href="#ref3","3")), tags$sup(tags$a(href="#ref4","4")), tags$sup(tags$a(href="#ref8","8"))),
-    refs  = tagList(tags$sup(tags$a(href="#ref4","4")), tags$sup(tags$a(href="#ref5","5"))),
+    body2 = tagList("Our simulations below demonstrate that assuming elevated neural gain fluctuations following V1 lesions effectively accounts for these observations.", tags$sup(tags$a(href="#ref1","1")), tags$sup(tags$a(href="#ref3","3")), tags$sup(tags$a(href="#ref4","4")), tags$sup(tags$a(href="#ref6","6"))),
+    refs  = tagList(tags$sup(tags$a(href="#ref3","3")), tags$sup(tags$a(href="#ref4","4")), tags$sup(tags$a(href="#ref5","5"))),
     img   = "blindsight.png"
   ),
   subjective = list(
     title = "Subjective inflation",
     body  = "Inattention leads to lower discrimination sensitivity but paradoxically increases subjective awareness.",
     body2 = tagList("Our simulations below demonstrate that assuming increased spike variability by inattention", tags$sup(tags$a(href="#ref10","10")), " effectively accounts for these observations."),
-    refs  = tagList(tags$sup(tags$a(href="#ref6","6")), tags$sup(tags$a(href="#ref7","7"))),
+    refs  = tagList(tags$sup(tags$a(href="#ref11","11")), tags$sup(tags$a(href="#ref12","12"))),
     img   = "subjective.png"
   )
 )
@@ -177,8 +179,8 @@ ui <- fluidPage(
       hr(),
       selectInput("preset", "Preset",
                   choices = c("Manual"              = "manual",
-                              "Samaha effect"        = "samaha",
                               "Blindsight"           = "blindsight",
+                              "Samaha effect"        = "samaha",
                               "Subjective inflation" = "subjective")),
       hr(),
       div(id = "wrap_stim1", sliderInput("stim1", "Stimulus 1 orientation (°)", min = 1, max = 180, value = 90,  step = 1)),
@@ -212,13 +214,13 @@ ui <- fluidPage(
           note_panel("note_tuning", tagList(
             tags$p("Spike count for each trial \\(r_{ij}\\) is drawn from a negative binomial distribution:"),
             tags$p(HTML("$$r_{ij} \\sim \\text{NegBinom}\\!\\left(\\mathrm{mean} = g\\,\\mu_{ij},\\; \\text{size} = \\frac{g\\,\\mu_{ij}}{F - 1}\\right)$$")),
-            tags$p(HTML("\\(g\\mu_{ij}\\) is a mean spike count for a neuron tuned to orientation \\(j\\), given a stimulus with orientation \\(i\\) , where  \\(g\\) is a multiplicative gain. \\(F\\) controls spike variability as explained below. "), tags$sup(tags$a(href="#ref2","2"))),
+            tags$p(HTML("\\(g\\mu_{ij}\\) is a mean spike count for a neuron tuned to orientation \\(j\\), given a stimulus with orientation \\(i\\), where \\(g\\) is a multiplicative gain. \\(F\\) controls spike variability as explained below."), tags$sup(tags$a(href="#ref1","1"))),
             tags$hr(),
             tags$p(tags$strong("Stimulus contrast", ":")),
             tags$p("The model comprises a population of 180 neurons, each tuned to a distinct orientation ranging from 1° to 180° in 1° steps."),
             tags$p(HTML("Each neuron has a circular Gaussian orientation tuning curve (\\(\\sigma = 20\\)). The peak response amplitude is determined by the Naka-Rushton contrast-response function:")),
             tags$p(HTML("$$R(C) = R_{\\max} \\cdot \\frac{C^n}{C^n + C_{50}^n}$$")),
-            tags$p(HTML("The slider value specifies the parameter \\(C\\) in this function. The other parameters are set to \\(R_{\\max} = 115\\) spikes/s, \\(C_{50} = 19.3\\%\\), and \\(n = 2.9\\), based on physiological measurements in V1."), tags$sup(tags$a(href="#ref1","1"))),
+            tags$p(HTML("The slider value specifies the parameter \\(C\\) in this function. The other parameters are set to \\(R_{\\max} = 115\\) spikes/s, \\(C_{50} = 19.3\\%\\), and \\(n = 2.9\\), based on physiological measurements in V1."), tags$sup(tags$a(href="#ref2","2"))),
             tags$hr(),
             tags$p(tags$strong("Baseline activity", ":")),
             tags$p("The parameter \\(\\mu_{ij}\\) is defined as follows:"),
@@ -226,10 +228,10 @@ ui <- fluidPage(
             tags$p("for which the slider value gives an orientation-independent offset \\(K\\), controlling responses unrelated to the stimulus."),
             tags$hr(),
             tags$p(tags$strong("Fano factor", ":")),
-            tags$p(HTML("This slider value defines the parameter \\(F\\) above, controlling spike variability. This value represents the Fano factor of the defined negative binominal distribution when there is no gain fluctuations.")),
+            tags$p(HTML("This slider value defines the parameter \\(F\\) above, controlling spike variability. This value represents the Fano factor of the defined negative binomial distribution when there is no gain fluctuations.")),
             tags$hr(),
             tags$p(tags$strong("Gain fluctuations", ":")),
-            tags$p(HTML("On each trial, a single scalar gain \\(g\\) is sampled from a Gamma distribution and applied multiplicatively to \\(\\mu_{ij}\\). The slider value corresponds to \\(\\sigma_g\\), which controls gain fluctuations as below, introducing extra variability in spike counts. This manipulation also introduces trial-by-trial spike count correlation across the population (often conceptualized as noise correlation)."), tags$sup(tags$a(href="#ref2","2"))),
+            tags$p(HTML("On each trial, a single scalar gain \\(g\\) is sampled from a Gamma distribution and applied multiplicatively to \\(\\mu_{ij}\\). The slider value corresponds to \\(\\sigma_g\\), which controls gain fluctuations as below, introducing extra variability in spike counts. This manipulation also introduces trial-by-trial spike count correlation across the population (often conceptualized as noise correlation)."), tags$sup(tags$a(href="#ref1","1"))),
             tags$p(HTML("$$g \\sim \\text{Gamma}\\!\\left(\\frac{1}{\\sigma_g^2},\\; \\sigma_g^2\\right), \\quad \\mathbb{E}[g] = 1, \\quad \\text{Var}[g] = \\sigma_g^2$$"))
           )),
           fluidRow(
@@ -274,11 +276,11 @@ ui <- fluidPage(
         style = "font-size:11px; color:#999; line-height:2.0; margin-top:8px; margin-bottom:20px;",
         tags$strong("References", style = "font-size:12px; color:#777; display:block; margin-bottom:4px;"),
         tags$p(id = "ref1", tags$sup("1"), " ",
-               "Albrecht DG, Hamilton DB. Striate cortex of monkey and cat: contrast response function. ",
-               tags$em("J Neurophysiol."), " 1982;48(1):217–237."),
-        tags$p(id = "ref2", tags$sup("2"), " ",
                "Goris RL, Movshon JA, Simoncelli EP. Partitioning neuronal variability. ",
                tags$em("Nat Neurosci."), " 2014;17(6):858–865."),
+        tags$p(id = "ref2", tags$sup("2"), " ",
+               "Albrecht DG, Hamilton DB. Striate cortex of monkey and cat: contrast response function. ",
+               tags$em("J Neurophysiol."), " 1982;48(1):217–237."),
         tags$p(id = "ref3", tags$sup("3"), " ",
                "Azzopardi P, and Cowey A. Why is blindsight blind? In ",
                tags$em("Out of Mind: Varieties of Unconscious Processes,"), " B. De Gelder, E.H.F. De Haan, and C.A. Heywood, eds. (Oxford University Press), pp. 3–19. 2001."),
@@ -289,26 +291,26 @@ ui <- fluidPage(
                "Phillips I. Blindsight is qualitatively degraded conscious vision. ",
                tags$em("Psychol. Rev."), " 2021;128:558–584."),
         tags$p(id = "ref6", tags$sup("6"), " ",
-               "Rahnev D, Maniscalco B, Graves T, Huang E, de Lange FP, and Lau H. Attention induces conservative subjective biases in visual perception. ",
-               tags$em("Nat. Neurosci."), " 2011;14:1513–1515."),
-        tags$p(id = "ref7", tags$sup("7"), " ",
-               "Okubo L, Miyoshi K, Yokosawa K, and Nishida S. Inattentional noise leads to subjective color uniformity across the visual field. ",
-               tags$em("Cognition."), " 2026;266:106293."),
-        tags$p(id = "ref8", tags$sup("8"), " ",
                "Cohen MR, Maunsell JH. Attention improves performance primarily by reducing interneuronal correlations. ",
                tags$em("Nat. Neurosci."), " 2009;12(12):1594–1600."),
-        tags$p(id = "ref9", tags$sup("9"), " ",
+        tags$p(id = "ref7", tags$sup("7"), " ",
                "Mitchell JF, Sundberg KA, Reynolds JH. Differential Attention-Dependent Response Modulation across Cell Classes in Macaque Visual Area V4. ",
                tags$em("Neuron."), " 2007;55(1):131–141."),
+        tags$p(id = "ref8", tags$sup("8"), " ",
+               "Samaha J, LaRocque JJ, and Postle BR. Spontaneous alpha-band amplitude predicts subjective visibility but not discrimination accuracy during high-level perception. ",
+               tags$em("Conscious. Cogn."), " 2022;102:103337."),
+        tags$p(id = "ref9", tags$sup("9"), " ",
+               "Iemi L, and Busch NA. Moment-to-moment fluctuations in neuronal excitability bias subjective perception rather than strategic decision-making. ",
+               tags$em("eNeuro."), " 2018;5:ENEURO.0430–17.2018."),
         tags$p(id = "ref10", tags$sup("10"), " ",
                "Mitchell JF, Sundberg KA, Reynolds JH. Spatial Attention Decorrelates Intrinsic Activity Fluctuations in Macaque Area V4. ",
                tags$em("Neuron."), " 2009;63(6):879–888."),
         tags$p(id = "ref11", tags$sup("11"), " ",
-               "Samaha J, LaRocque JJ, and Postle BR. Spontaneous alpha-band amplitude predicts subjective visibility but not discrimination accuracy during high-level perception. ",
-               tags$em("Conscious. Cogn."), " 2022;102:103337."),
+               "Rahnev D, Maniscalco B, Graves T, Huang E, de Lange FP, and Lau H. Attention induces conservative subjective biases in visual perception. ",
+               tags$em("Nat. Neurosci."), " 2011;14:1513–1515."),
         tags$p(id = "ref12", tags$sup("12"), " ",
-               "Iemi L, and Busch NA. Moment-to-moment fluctuations in neuronal excitability bias subjective perception rather than strategic decision-making. ",
-               tags$em("eNeuro."), " 2018;5:ENEURO.0430–17.2018.")
+               "Okubo L, Miyoshi K, Yokosawa K, and Nishida S. Inattentional noise leads to subjective color uniformity across the visual field. ",
+               tags$em("Cognition."), " 2026;266:106293.")
       )
     )
   )
@@ -378,7 +380,6 @@ server <- function(input, output, session) {
       if (sl %in% active) removeClass(wrap_id, "slider-disabled")
       else                 addClass(wrap_id,    "slider-disabled")
     }
-    # Disable stimulus orientation sliders for non-manual presets
     if (input$preset == "manual") {
       removeClass("wrap_stim1", "slider-disabled")
       removeClass("wrap_stim2", "slider-disabled")
@@ -612,7 +613,6 @@ server <- function(input, output, session) {
       labs(x = "Total spikes", y = "Density") +
       theme_classic(base_size = 20)
     
-    # Detection criterion line for subjective inflation only
     if (input$preset == "subjective") {
       crit <- quantile(df_density$Sum_spikes, 0.65)
       g <- g + geom_vline(xintercept = crit, linetype = "dashed",
@@ -708,7 +708,6 @@ server <- function(input, output, session) {
       }
       rA <- make_boundary_plot(lbl_A, col_A, "A")
       rB <- make_boundary_plot(lbl_B, col_B, "B")
-      # blindsightのときはB（Low）を先に追加して凡例の上に表示
       trace_order <- if (input$preset == "blindsight") list(rB, rA) else list(rA, rB)
       p <- plot_ly()
       for (r in trace_order) {
