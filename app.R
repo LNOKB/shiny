@@ -70,21 +70,21 @@ phenomenon_intro_content <- list(
   samaha     = list(
     title = "Samaha effect",
     body  = "Low pre-stimulus α power predicts increased visibility while leaving orientation discrimination sensitivity unchanged.",
-    body2 = tagList("Our simulations below demonstrate that assuming increased baseline neural activity associated with low pre-stimulus α power", tags$sup(tags$a(href="#ref9","9")), " is sufficient to account for these observations."),
+    body2 = tagList("Our simulations below demonstrate that assuming increased baseline neural activity associated with low pre-stimulus α power", tags$sup(tags$a(href="#ref9","9")), " effectively accounts for these observations."),
     refs  = tagList(tags$sup(tags$a(href="#ref11","11")), tags$sup(tags$a(href="#ref12","12"))),
     img   = "samaha.png"
   ),
   blindsight = list(
     title = "Blindsight",
     body  = "Lesions in the primary visual cortex impair awareness (yes/no detection sensitivity) while leaving orientation discrimination sensitivity largely intact.",
-    body2 = tagList("Our simulations below demonstrate that assuming elevated neural gain fluctuations following V1 lesions is sufficient to account for these observations.", tags$sup(tags$a(href="#ref2","2")), tags$sup(tags$a(href="#ref3","3")), tags$sup(tags$a(href="#ref4","4")), tags$sup(tags$a(href="#ref8","8"))),
+    body2 = tagList("Our simulations below demonstrate that assuming elevated neural gain fluctuations following V1 lesions effectively accounts for these observations.", tags$sup(tags$a(href="#ref2","2")), tags$sup(tags$a(href="#ref3","3")), tags$sup(tags$a(href="#ref4","4")), tags$sup(tags$a(href="#ref8","8"))),
     refs  = tagList(tags$sup(tags$a(href="#ref4","4")), tags$sup(tags$a(href="#ref5","5"))),
     img   = "blindsight.png"
   ),
   subjective = list(
     title = "Subjective inflation",
     body  = "Inattention leads to lower discrimination sensitivity but paradoxically increases subjective awareness.",
-    body2 = tagList("Our simulations below demonstrate that assuming increased spike variability by inattention", tags$sup(tags$a(href="#ref10","10")), " is sufficient to account for these observations."),
+    body2 = tagList("Our simulations below demonstrate that assuming increased spike variability by inattention", tags$sup(tags$a(href="#ref10","10")), " effectively accounts for these observations."),
     refs  = tagList(tags$sup(tags$a(href="#ref6","6")), tags$sup(tags$a(href="#ref7","7"))),
     img   = "subjective.png"
   )
@@ -210,26 +210,26 @@ ui <- fluidPage(
           uiOutput("key_assumption_box"),
           h4("Tuning curves"),
           note_panel("note_tuning", tagList(
-            tags$p("Spike count for each trial \\(r_{ij}\\) is drawn from a Negative Binomial distribution:"),
+            tags$p("Spike count for each trial \\(r_{ij}\\) is drawn from a negative binomial distribution:"),
             tags$p(HTML("$$r_{ij} \\sim \\text{NegBinom}\\!\\left(\\mathrm{mean} = g\\,\\mu_{ij},\\; \\text{size} = \\frac{g\\,\\mu_{ij}}{F - 1}\\right)$$")),
             tags$p(HTML("\\(g\\mu_{ij}\\) is a mean spike count for a neuron tuned to orientation \\(j\\), given a stimulus with orientation \\(i\\) , where  \\(g\\) is a multiplicative gain. \\(F\\) controls spike variability as explained below. "), tags$sup(tags$a(href="#ref2","2"))),
             tags$hr(),
             tags$p(tags$strong("Stimulus contrast", ":")),
             tags$p("The model comprises a population of 180 neurons, each tuned to a distinct orientation ranging from 1° to 180° in 1° steps."),
-            tags$p("Each of neurons has a circular Gaussian orientation tuning curve. The peak response amplitude is determined by the Naka-Rushton contrast-response function:"),
+            tags$p(HTML("Each neuron has a circular Gaussian orientation tuning curve (\\(\\sigma = 20\\)). The peak response amplitude is determined by the Naka-Rushton contrast-response function:")),
             tags$p(HTML("$$R(C) = R_{\\max} \\cdot \\frac{C^n}{C^n + C_{50}^n}$$")),
-            tags$p(HTML("The slider value specifies the parameter \\(C\\) in this function. The other parameters are set to \\(R_{\\max} = 115\\) spikes/s, \\(C_{50} = 19.3\\%\\) and \\(n = 2.9\\), based on physiological measurements in V1."), tags$sup(tags$a(href="#ref1","1"))),
+            tags$p(HTML("The slider value specifies the parameter \\(C\\) in this function. The other parameters are set to \\(R_{\\max} = 115\\) spikes/s, \\(C_{50} = 19.3\\%\\), and \\(n = 2.9\\), based on physiological measurements in V1."), tags$sup(tags$a(href="#ref1","1"))),
             tags$hr(),
             tags$p(tags$strong("Baseline activity", ":")),
-            tags$p("\\(\\mu_{ij}\\) is defined as follows:"),
+            tags$p("The parameter \\(\\mu_{ij}\\) is defined as follows:"),
             tags$p(HTML("$$\\mu_{ij} = R(C) + K$$")),
-            tags$p("where the slider value gives an orientation-independent offset \\(K\\), representing responses unrelated to the stimulus."),
+            tags$p("for which the slider value gives an orientation-independent offset \\(K\\), controlling responses unrelated to the stimulus."),
             tags$hr(),
             tags$p(tags$strong("Fano factor", ":")),
-            tags$p(HTML("The slider value controlls spike variability through the parameter \\(F\\). This value represents the Fano factor of the defined Negative Binominal distribution when there is no gain fluctuations.")),
+            tags$p(HTML("This slider value defines the parameter \\(F\\) above, controlling spike variability. This value represents the Fano factor of the defined negative binominal distribution when there is no gain fluctuations.")),
             tags$hr(),
             tags$p(tags$strong("Gain fluctuations", ":")),
-            tags$p(HTML("On each trial, a single scalar gain \\(g\\) is sampled from a Gamma distribution and applied multiplicatively to \\(\\mu_{ij}\\). The slider value corresponds to \\(\\sigma_g\\), which controls gain fluctuations as below, introducing extra variability in spike counts. This manupulation also introduces trial-by-trial spike count correlation across the population (often conceptualized as noise correlation)."), tags$sup(tags$a(href="#ref2","2")), tags$sup(tags$a(href="#ref3",", 3"))),
+            tags$p(HTML("On each trial, a single scalar gain \\(g\\) is sampled from a Gamma distribution and applied multiplicatively to \\(\\mu_{ij}\\). The slider value corresponds to \\(\\sigma_g\\), which controls gain fluctuations as below, introducing extra variability in spike counts. This manipulation also introduces trial-by-trial spike count correlation across the population (often conceptualized as noise correlation)."), tags$sup(tags$a(href="#ref2","2"))),
             tags$p(HTML("$$g \\sim \\text{Gamma}\\!\\left(\\frac{1}{\\sigma_g^2},\\; \\sigma_g^2\\right), \\quad \\mathbb{E}[g] = 1, \\quad \\text{Var}[g] = \\sigma_g^2$$"))
           )),
           fluidRow(
