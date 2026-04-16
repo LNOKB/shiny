@@ -72,8 +72,8 @@ phenomenon_intro_content <- list(
   samaha     = list(
     title = "Samaha effect",
     body  = "Low pre-stimulus α power predicts increased visibility while leaving orientation discrimination sensitivity unchanged.",
-    body2 = tagList("Our simulations below demonstrate that assuming increased baseline neural activity associated with low pre-stimulus α power", tags$sup(tags$a(href="#ref7","7")), " effectively accounts for these observations."),
-    refs  = tagList(tags$sup(tags$a(href="#ref8","8")), tags$sup(tags$a(href="#ref9","9"))),
+    body2 = tagList("Our simulations below demonstrate that assuming increased baseline neural activity associated with low pre-stimulus α power", tags$sup(tags$a(href="#ref9","9")), " effectively accounts for these observations."),
+    refs  = tagList(tags$sup(tags$a(href="#ref7","7")), tags$sup(tags$a(href="#ref8","8"))),
     img   = "samaha.png"
   ),
   blindsight = list(
@@ -86,8 +86,8 @@ phenomenon_intro_content <- list(
   subjective = list(
     title = "Subjective inflation",
     body  = "Inattention leads to lower discrimination sensitivity but paradoxically increases subjective awareness.",
-    body2 = tagList("Our simulations below demonstrate that assuming increased spike variability by inattention", tags$sup(tags$a(href="#ref10","10")), " effectively accounts for these observations."),
-    refs  = tagList(tags$sup(tags$a(href="#ref11","11")), tags$sup(tags$a(href="#ref12","12"))),
+    body2 = tagList("Our simulations below demonstrate that assuming increased spike variability by inattention", tags$sup(tags$a(href="#ref12","12")), " effectively accounts for these observations."),
+    refs  = tagList(tags$sup(tags$a(href="#ref10","10")), tags$sup(tags$a(href="#ref11","11"))),
     img   = "subjective.png"
   )
 )
@@ -294,23 +294,23 @@ ui <- fluidPage(
                "Cohen MR, Maunsell JH. Attention improves performance primarily by reducing interneuronal correlations. ",
                tags$em("Nat. Neurosci."), " 2009;12(12):1594–1600."),
         tags$p(id = "ref7", tags$sup("7"), " ",
-               "Mitchell JF, Sundberg KA, Reynolds JH. Differential Attention-Dependent Response Modulation across Cell Classes in Macaque Visual Area V4. ",
-               tags$em("Neuron."), " 2007;55(1):131–141."),
+               "Iemi L, and Busch NA. Moment-to-moment fluctuations in neuronal excitability bias subjective perception rather than strategic decision-making. ",
+               tags$em("eNeuro."), " 2018;5:ENEURO.0430–17.2018."),
         tags$p(id = "ref8", tags$sup("8"), " ",
                "Samaha J, LaRocque JJ, and Postle BR. Spontaneous alpha-band amplitude predicts subjective visibility but not discrimination accuracy during high-level perception. ",
                tags$em("Conscious. Cogn."), " 2022;102:103337."),
         tags$p(id = "ref9", tags$sup("9"), " ",
-               "Iemi L, and Busch NA. Moment-to-moment fluctuations in neuronal excitability bias subjective perception rather than strategic decision-making. ",
-               tags$em("eNeuro."), " 2018;5:ENEURO.0430–17.2018."),
+               "Romei V, Brodbeck V, Michel C, Amedi A, Pascual-Leone A, and Thut G. Spontaneous fluctuations in posterior α-band EEG activity reflect variability in excitability of human visual areas. ",
+               tags$em("Cereb. Cortex."), " 2008;18(9):2010–2018."),
         tags$p(id = "ref10", tags$sup("10"), " ",
-               "Mitchell JF, Sundberg KA, Reynolds JH. Spatial Attention Decorrelates Intrinsic Activity Fluctuations in Macaque Area V4. ",
-               tags$em("Neuron."), " 2009;63(6):879–888."),
-        tags$p(id = "ref11", tags$sup("11"), " ",
                "Rahnev D, Maniscalco B, Graves T, Huang E, de Lange FP, and Lau H. Attention induces conservative subjective biases in visual perception. ",
                tags$em("Nat. Neurosci."), " 2011;14:1513–1515."),
-        tags$p(id = "ref12", tags$sup("12"), " ",
+        tags$p(id = "ref11", tags$sup("11"), " ",
                "Okubo L, Miyoshi K, Yokosawa K, and Nishida S. Inattentional noise leads to subjective color uniformity across the visual field. ",
-               tags$em("Cognition."), " 2026;266:106293.")
+               tags$em("Cognition."), " 2026;266:106293."),
+        tags$p(id = "ref12", tags$sup("12"), " ",
+               "Mitchell JF, Sundberg KA, Reynolds JH. Spatial Attention Decorrelates Intrinsic Activity Fluctuations in Macaque Area V4. ",
+               tags$em("Neuron."), " 2009;63(6):879–888.")
       )
     )
   )
@@ -686,9 +686,9 @@ server <- function(input, output, session) {
     col_B <- cond_colors[[input$preset]]$B
     s1 <- min(input$stim1, input$stim2)
     s2 <- max(input$stim1, input$stim2)
-    n1 <- max(1,   round(s1 - 10))
+    n1 <- max(1,   round(s1 - 0))
     n2 <- max(1,   min(180, round((s1 + s2) / 2)))
-    n3 <- min(180, round(s2 + 10))
+    n3 <- min(180, round(s2 + 0))
     nn1 <- as.character(n1); nn2 <- as.character(n2); nn3 <- as.character(n3)
     withProgress(message = "Fitting decision boundary...", {
       make_boundary_plot <- function(cond_label, col, cond_key) {
